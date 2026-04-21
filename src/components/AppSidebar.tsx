@@ -34,7 +34,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-primary font-bold text-xs tracking-widest uppercase">
-            {!collapsed && "Academia Deportiva"}
+            {!collapsed && "Estrellas del Milenio"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
