@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -9,55 +9,95 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const STORAGE_KEY = "academia_deportistas";
-
-function getStored(): Record<string, string>[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch { return []; }
-}
-
-const categorias = ["Sub-7","Sub-9","Sub-11","Sub-13","Sub-15","Sub-17","Sub-20","Mayores"];
-const clasificaciones = ["Recreativo","Competitivo","Alto Rendimiento"];
-const posiciones = ["Portero","Defensa","Mediocampista","Delantero"];
-const personas = ["Santiago Muñoz","Valentina Torres","Diego Herrera","Camila Ríos","Mateo Salazar"];
-
-const historialMock = [
-  { anio: "2023", peso: "45", estatura: "1.55", imc: "18.7", clasificacion: "Competitivo" },
-  { anio: "2024", peso: "50", estatura: "1.62", imc: "19.1", clasificacion: "Competitivo" },
-  { anio: "2025", peso: "55", estatura: "1.68", imc: "19.5", clasificacion: "Alto Rendimiento" },
-];
+import api from "@/lib/api";
 
 export default function Deportistas() {
   const { toast } = useToast();
-  const [data, setData] = useState<Record<string, string>[]>(getStored);
+  const [data, setData] = useState<Record<string, any>[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [opciones, setOpciones] = useState({
+    personas: [], categorias: [], clasificaciones: [], posiciones: [], estados: []
+  });
 
-  const save = (d: Record<string, string>[]) => { setData(d); localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); };
-  const openCreate = () => { setForm({}); setEditIndex(null); setOpen(true); };
-  const openEdit = (i: number) => { setForm({ ...data[i] }); setEditIndex(i); setOpen(true); };
-  const handleDelete = (i: number) => { save(data.filter((_, idx) => idx !== i)); toast({ title: "Eliminado", description: "Registro eliminado" }); };
+  useEffect(() => {
+    cargarOpciones()
+    fetchData()
+  }, [])
 
-  const handleSubmit = () => {
-    if (!form.persona || !form.categoria) {
-      toast({ title: "Error", description: "Completa los campos requeridos", variant: "destructive" });
-      return;
+  const cargarOpciones = async () => {
+    const [personas, categorias, clasificaciones, posiciones, estados] = await Promise.all([
+      api.get("/api/personas"),
+      api.get("/api/catalogos/categorias"),
+      api.get("/api/catalogos/clasificaciones"),
+      api.get("/api/catalogos/posiciones"),
+      api.get("/api/catalogos/estados"),
+    ])
+    setOpciones({
+      personas: personas.map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
+      categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),
+      clasificaciones: clasificaciones.map((c: any) => ({ value: String(c.id), label: c.nombre })),
+      posiciones: posiciones.map((p: any) => ({ value: String(p.id), label: p.nombre })),
+      estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
+    })
+  }
+
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const res = await api.get("/api/deportistas")
+      setData(res)
+    } catch {
+      toast({ title: "Error", description: "No se pudo cargar los deportistas", variant: "destructive" })
+    } finally {
+      setLoading(false)
     }
-    const imc = form.peso && form.estatura ? (parseFloat(form.peso) / Math.pow(parseFloat(form.estatura), 2)).toFixed(1) : "";
-    const newForm = { ...form, imc };
-    const newData = [...data];
-    if (editIndex !== null) { newData[editIndex] = newForm; } else { newData.push({ ...newForm, id: Date.now().toString() }); }
-    save(newData);
-    toast({ title: editIndex !== null ? "Actualizado" : "Creado", description: "Registro guardado correctamente" });
-    setOpen(false);
-  };
+  }
 
-  const togglePos = (pos: string) => {
-    const selected = (form.posiciones || "").split(",").filter(Boolean);
-    const newSelected = selected.includes(pos) ? selected.filter(s => s !== pos) : [...selected, pos];
-    setForm(prev => ({ ...prev, posiciones: newSelected.join(",") }));
-  };
+  const openCreate = () => { setForm({}); setEditId(null); setOpen(true) }
+  const openEdit = (row: any) => { setForm({ ...row }); setEditId(row.id); setOpen(true) }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/api/deportistas/${id}`)
+      toast({ title: "Desactivado", description: "Deportista desactivado correctamente" })
+      fetchData()
+    } catch {
+      toast({ title: "Error", description: "No se pudo desactivar", variant: "destructive" })
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!form.id_persona || !form.id_categoria || !form.id_estado) {
+      toast({ title: "Error", description: "Completa los campos obligatorios", variant: "destructive" })
+      return
+    }
+    const imc = form.peso_actual && form.estatura_actual
+      ? (parseFloat(form.peso_actual) / Math.pow(parseFloat(form.estatura_actual), 2)).toFixed(2)
+      : form.IMC_actual || "0"
+    const payload = { ...form, IMC_actual: imc }
+    try {
+      if (editId) {
+        await api.put(`/api/deportistas/${editId}`, payload)
+        toast({ title: "Actualizado", description: "Deportista actualizado correctamente" })
+      } else {
+        await api.post("/api/deportistas", payload)
+        toast({ title: "Creado", description: "Deportista creado correctamente" })
+      }
+      fetchData()
+      setOpen(false)
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" })
+    }
+  }
+
+  const togglePos = (val: string) => {
+    const selected = (form.posiciones || "").split(",").filter(Boolean)
+    const newSelected = selected.includes(val) ? selected.filter(s => s !== val) : [...selected, val]
+    setForm(prev => ({ ...prev, posiciones: newSelected.join(",") }))
+  }
 
   return (
     <div>
@@ -65,35 +105,40 @@ export default function Deportistas() {
         <h2 className="text-2xl font-bold">Deportistas</h2>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nuevo</Button>
       </div>
+
       <div className="rounded-lg border bg-card overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Apellido</TableHead>
               <TableHead>Categoría</TableHead>
               <TableHead>Clasificación</TableHead>
               <TableHead>Peso</TableHead>
               <TableHead>Estatura</TableHead>
               <TableHead>Mensualidad</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="w-[120px] text-right">Acciones</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No hay registros. Haz clic en "Nuevo" para agregar uno.</TableCell></TableRow>
+            {loading ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>
+            ) : data.length === 0 ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No hay registros.</TableCell></TableRow>
             ) : data.map((row, i) => (
               <TableRow key={i}>
-                <TableCell>{row.persona || "—"}</TableCell>
+                <TableCell>{row.nombre || "—"}</TableCell>
+                <TableCell>{row.apellido || "—"}</TableCell>
                 <TableCell>{row.categoria || "—"}</TableCell>
                 <TableCell>{row.clasificacion || "—"}</TableCell>
-                <TableCell>{row.peso ? `${row.peso} kg` : "—"}</TableCell>
-                <TableCell>{row.estatura ? `${row.estatura} m` : "—"}</TableCell>
-                <TableCell>{row.mensualidad ? `$${parseInt(row.mensualidad).toLocaleString()}` : "—"}</TableCell>
+                <TableCell>{row.peso_actual ? `${row.peso_actual} kg` : "—"}</TableCell>
+                <TableCell>{row.estatura_actual ? `${row.estatura_actual} m` : "—"}</TableCell>
+                <TableCell>{row.valor_mensualidad ? `$${parseInt(row.valor_mensualidad).toLocaleString()}` : "—"}</TableCell>
                 <TableCell>{row.estado || "—"}</TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(i)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(row.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -104,50 +149,46 @@ export default function Deportistas() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editIndex !== null ? "Editar" : "Nuevo"} Deportista</DialogTitle>
+            <DialogTitle>{editId ? "Editar" : "Nuevo"} Deportista</DialogTitle>
           </DialogHeader>
           <Tabs defaultValue="general" className="w-full">
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="fisico">Estado Físico</TabsTrigger>
               <TabsTrigger value="posiciones">Posiciones</TabsTrigger>
-              <TabsTrigger value="historial">Historial</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="grid gap-4 pt-4">
               <div className="grid gap-2">
                 <Label>Persona</Label>
-                <Select value={form.persona || ""} onValueChange={v => setForm(p => ({ ...p, persona: v }))}>
+                <Select value={form.id_persona || ""} onValueChange={v => setForm(p => ({ ...p, id_persona: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar persona" /></SelectTrigger>
-                  <SelectContent>{personas.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(opciones.personas as any[]).map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
                 <Label>Categoría</Label>
-                <Select value={form.categoria || ""} onValueChange={v => setForm(p => ({ ...p, categoria: v }))}>
+                <Select value={form.id_categoria || ""} onValueChange={v => setForm(p => ({ ...p, id_categoria: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar categoría" /></SelectTrigger>
-                  <SelectContent>{categorias.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(opciones.categorias as any[]).map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
                 <Label>Clasificación</Label>
-                <Select value={form.clasificacion || ""} onValueChange={v => setForm(p => ({ ...p, clasificacion: v }))}>
+                <Select value={form.id_clasificacion || ""} onValueChange={v => setForm(p => ({ ...p, id_clasificacion: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar clasificación" /></SelectTrigger>
-                  <SelectContent>{clasificaciones.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(opciones.clasificaciones as any[]).map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Mensualidad</Label>
-                <Input type="number" placeholder="150000" value={form.mensualidad || ""} onChange={e => setForm(p => ({ ...p, mensualidad: e.target.value }))} />
+                <Label>Valor mensualidad</Label>
+                <Input type="number" placeholder="150000" value={form.valor_mensualidad || ""} onChange={e => setForm(p => ({ ...p, valor_mensualidad: e.target.value }))} />
               </div>
               <div className="grid gap-2">
                 <Label>Estado</Label>
-                <Select value={form.estado || ""} onValueChange={v => setForm(p => ({ ...p, estado: v }))}>
+                <Select value={form.id_estado || ""} onValueChange={v => setForm(p => ({ ...p, id_estado: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar estado" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Activo">Activo</SelectItem>
-                    <SelectItem value="Inactivo">Inactivo</SelectItem>
-                  </SelectContent>
+                  <SelectContent>{(opciones.estados as any[]).map(e => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </TabsContent>
@@ -156,21 +197,21 @@ export default function Deportistas() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Peso actual (kg)</Label>
-                  <Input type="number" placeholder="55" value={form.peso || ""} onChange={e => setForm(p => ({ ...p, peso: e.target.value }))} />
+                  <Input type="number" placeholder="55" value={form.peso_actual || ""} onChange={e => setForm(p => ({ ...p, peso_actual: e.target.value }))} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Estatura actual (m)</Label>
-                  <Input type="number" step="0.01" placeholder="1.68" value={form.estatura || ""} onChange={e => setForm(p => ({ ...p, estatura: e.target.value }))} />
+                  <Input type="number" step="0.01" placeholder="1.68" value={form.estatura_actual || ""} onChange={e => setForm(p => ({ ...p, estatura_actual: e.target.value }))} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>IMC</Label>
-                  <Input readOnly value={form.peso && form.estatura ? (parseFloat(form.peso) / Math.pow(parseFloat(form.estatura), 2)).toFixed(1) : "—"} className="bg-muted" />
+                  <Label>IMC (calculado)</Label>
+                  <Input readOnly value={form.peso_actual && form.estatura_actual ? (parseFloat(form.peso_actual) / Math.pow(parseFloat(form.estatura_actual), 2)).toFixed(2) : "—"} className="bg-muted" />
                 </div>
                 <div className="grid gap-2">
                   <Label>% Grasa corporal</Label>
-                  <Input type="number" placeholder="15" value={form.grasa || ""} onChange={e => setForm(p => ({ ...p, grasa: e.target.value }))} />
+                  <Input type="number" placeholder="15" value={form.porcentaje_grasa_actual || ""} onChange={e => setForm(p => ({ ...p, porcentaje_grasa_actual: e.target.value }))} />
                 </div>
               </div>
             </TabsContent>
@@ -178,51 +219,23 @@ export default function Deportistas() {
             <TabsContent value="posiciones" className="pt-4">
               <p className="text-sm text-muted-foreground mb-3">Selecciona las posiciones del deportista:</p>
               <div className="flex flex-wrap gap-3">
-                {posiciones.map(pos => {
-                  const selected = (form.posiciones || "").split(",").includes(pos);
+                {(opciones.posiciones as any[]).map(pos => {
+                  const selected = (form.posiciones || "").split(",").includes(pos.value)
                   return (
-                    <Badge key={pos} variant={selected ? "default" : "outline"} className="cursor-pointer text-sm px-4 py-2 select-none" onClick={() => togglePos(pos)}>
-                      {pos}
+                    <Badge key={pos.value} variant={selected ? "default" : "outline"} className="cursor-pointer text-sm px-4 py-2 select-none" onClick={() => togglePos(pos.value)}>
+                      {pos.label}
                     </Badge>
-                  );
+                  )
                 })}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="historial" className="pt-4">
-              <p className="text-sm text-muted-foreground mb-3">Historial de mediciones del deportista:</p>
-              <div className="rounded-lg border overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Año</TableHead>
-                      <TableHead>Peso</TableHead>
-                      <TableHead>Estatura</TableHead>
-                      <TableHead>IMC</TableHead>
-                      <TableHead>Clasificación</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {historialMock.map((h, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{h.anio}</TableCell>
-                        <TableCell>{h.peso} kg</TableCell>
-                        <TableCell>{h.estatura} m</TableCell>
-                        <TableCell>{h.imc}</TableCell>
-                        <TableCell>{h.clasificacion}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
             </TabsContent>
           </Tabs>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit}>{editIndex !== null ? "Guardar" : "Crear"}</Button>
+            <Button onClick={handleSubmit}>{editId ? "Guardar" : "Crear"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

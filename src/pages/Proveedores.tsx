@@ -1,27 +1,51 @@
+import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
-
-const tableFields: FieldDef[] = [
-  { key: "persona", label: "Nombre proveedor" },
-  { key: "documento", label: "Documento" },
-  { key: "telefono", label: "Teléfono" },
-  { key: "estado", label: "Estado" },
-];
-
-const formFields: FieldDef[] = [
-  { key: "persona", label: "Seleccionar persona", type: "select", options: [
-    { value: "Distribuciones ABC", label: "Distribuciones ABC" },
-    { value: "Deportes del Sur", label: "Deportes del Sur" },
-    { value: "Textiles Pro", label: "Textiles Pro" },
-    { value: "Implementos JR", label: "Implementos JR" },
-  ]},
-  { key: "documento", label: "Documento", placeholder: "NIT o CC" },
-  { key: "telefono", label: "Teléfono", placeholder: "300 123 4567" },
-  { key: "estado", label: "Estado", type: "select", options: [
-    { value: "Activo", label: "Activo" },
-    { value: "Inactivo", label: "Inactivo" },
-  ]},
-];
+import api from "@/lib/api";
 
 export default function Proveedores() {
-  return <CrudPage title="Proveedores" storageKey="academia_proveedores" fields={formFields} tableFields={tableFields} formFields={formFields} />;
+  const [opciones, setOpciones] = useState({
+    personas: [],
+    productos: [],
+    estados: [],
+  });
+
+  useEffect(() => {
+    const cargarOpciones = async () => {
+      const [personas, productos, estados] = await Promise.all([
+        api.get("/api/personas"),
+        api.get("/api/productos"),
+        api.get("/api/catalogos/estados"),
+      ]);
+      setOpciones({
+        personas: personas.map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
+        productos: productos.map((p: any) => ({ value: String(p.id), label: p.nombre_producto })),
+        estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
+      });
+    };
+    cargarOpciones();
+  }, []);
+
+  const tableFields: FieldDef[] = [
+    { key: "nombre", label: "Nombre" },
+    { key: "numero_documento", label: "Documento" },
+    { key: "numero_telefono", label: "Teléfono" },
+    { key: "nombre_producto", label: "Producto" },
+    { key: "estado", label: "Estado" },
+  ];
+
+  const formFields: FieldDef[] = [
+    { key: "id_persona", label: "Persona", type: "select", options: opciones.personas },
+    { key: "id_producto", label: "Producto", type: "select", options: opciones.productos },
+    { key: "id_estado", label: "Estado", type: "select", options: opciones.estados },
+  ];
+
+  return (
+    <CrudPage
+      title="Proveedores"
+      endpoint="/api/proveedores"
+      fields={formFields}
+      tableFields={tableFields}
+      formFields={formFields}
+    />
+  );
 }
