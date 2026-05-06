@@ -32,7 +32,7 @@ interface CrudPageProps {
 
 export default function CrudPage({ title, fields, endpoint, tableFields, formFields }: CrudPageProps) {
   const { toast } = useToast();
-  const [data, setData] = useState<Record<string, string>[]>([]);
+  const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -61,9 +61,21 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
     setOpen(true)
   }
 
-  const openEdit = (row: Record<string, string>) => {
-    setForm({ ...row })
-    setEditId(row.id)
+  // ← Normaliza todos los valores a string para que los selects funcionen
+  const openEdit = (row: Record<string, any>) => {
+    const normalized: Record<string, string> = {}
+    editFields.forEach(f => {
+      const val = row[f.key]
+      normalized[f.key] = val !== null && val !== undefined ? String(val) : ""
+    })
+    // Incluir también los campos id_ que pueden no estar en editFields
+    Object.keys(row).forEach(key => {
+      if (key.startsWith('id_') || key === 'id') {
+        normalized[key] = row[key] !== null && row[key] !== undefined ? String(row[key]) : ""
+      }
+    })
+    setForm(normalized)
+    setEditId(String(row.id))
     setOpen(true)
   }
 
@@ -144,7 +156,7 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
     )
   }
 
-  const renderCellValue = (f: FieldDef, row: Record<string, string>) => {
+  const renderCellValue = (f: FieldDef, row: Record<string, any>) => {
     if (f.render) return f.render(row[f.key], row)
     return row[f.key] || "—"
   }
@@ -191,7 +203,7 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
                     <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(row.id)} className="text-destructive hover:text-destructive">
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive">
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>

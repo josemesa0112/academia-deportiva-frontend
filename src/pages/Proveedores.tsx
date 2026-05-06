@@ -17,7 +17,10 @@ export default function Proveedores() {
         api.get("/api/catalogos/estados"),
       ]);
       setOpciones({
-        personas: personas.map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
+        // ← Solo personas con rol Proveedor (id_rol = 4)
+        personas: personas
+          .filter((p: any) => p.id_rol === 4)
+          .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
         productos: productos.map((p: any) => ({ value: String(p.id), label: p.nombre_producto })),
         estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
       });
@@ -27,6 +30,7 @@ export default function Proveedores() {
 
   const tableFields: FieldDef[] = [
     { key: "nombre", label: "Nombre" },
+    { key: "apellido", label: "Apellido" },
     { key: "numero_documento", label: "Documento" },
     { key: "numero_telefono", label: "Teléfono" },
     { key: "nombre_producto", label: "Producto" },

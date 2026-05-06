@@ -36,7 +36,10 @@ export default function Deportistas() {
       api.get("/api/catalogos/estados"),
     ])
     setOpciones({
-      personas: personas.map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
+      // ← Solo personas con rol Deportista (id_rol = 3)
+      personas: personas
+        .filter((p: any) => p.id_rol === 3)
+        .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
       categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),
       clasificaciones: clasificaciones.map((c: any) => ({ value: String(c.id), label: c.nombre })),
       posiciones: posiciones.map((p: any) => ({ value: String(p.id), label: p.nombre })),
@@ -57,7 +60,24 @@ export default function Deportistas() {
   }
 
   const openCreate = () => { setForm({}); setEditId(null); setOpen(true) }
-  const openEdit = (row: any) => { setForm({ ...row }); setEditId(row.id); setOpen(true) }
+
+  // ← Convertir todos los IDs a string para que los selects funcionen al editar
+  const openEdit = (row: any) => {
+    setForm({
+      id_persona: String(row.id_persona),
+      id_categoria: String(row.id_categoria),
+      id_clasificacion: String(row.id_clasificacion),
+      id_estado: String(row.id_estado),
+      peso_actual: String(row.peso_actual || ""),
+      estatura_actual: String(row.estatura_actual || ""),
+      IMC_actual: String(row.imc_actual || ""),
+      porcentaje_grasa_actual: String(row.porcentaje_grasa_actual || ""),
+      valor_mensualidad: String(row.valor_mensualidad || ""),
+      posiciones: row.posiciones || "",
+    })
+    setEditId(String(row.id))
+    setOpen(true)
+  }
 
   const handleDelete = async (id: string) => {
     try {
@@ -138,7 +158,7 @@ export default function Deportistas() {
                 <TableCell>{row.estado || "—"}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(row.id)} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                  <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
