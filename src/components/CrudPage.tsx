@@ -73,6 +73,11 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
       if (key.startsWith('id_') || key === 'id') {
         normalized[key] = row[key] !== null && row[key] !== undefined ? String(row[key]) : ""
       }
+      // Corregir formato de fechas para input type="date"
+      if (key.includes('fecha') || key.includes('date')) {
+        const val = row[key]
+        if (val) normalized[key] = String(val).split('T')[0]
+      }
     })
     setForm(normalized)
     setEditId(String(row.id))
