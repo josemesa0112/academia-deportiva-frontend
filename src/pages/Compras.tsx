@@ -102,10 +102,18 @@ export default function Compras() {
   };
 
   const updateItem = (idx: number, key: keyof LineItem, val: string) => {
-    const newItems = [...items];
-    newItems[idx] = { ...newItems[idx], [key]: val };
-    setItems(newItems);
-  };
+  // Verificar duplicado al seleccionar producto
+  if (key === "id_producto" && val) {
+    const duplicado = items.some((it, i) => i !== idx && it.id_producto === val)
+    if (duplicado) {
+      toast({ title: "Producto duplicado", description: "Este producto ya fue agregado a la compra", variant: "destructive" })
+      return
+    }
+  }
+  const newItems = [...items]
+  newItems[idx] = { ...newItems[idx], [key]: val }
+  setItems(newItems)
+}
 
   return (
     <div>
@@ -174,7 +182,15 @@ export default function Compras() {
             <div className="mt-2">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-base font-semibold">Detalle de productos</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => setItems([...items, { id_producto: "", cantidad_productos: "", precio: "" }])}>
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  // Verificar que el último item tenga producto seleccionado antes de agregar otro
+                  const ultimo = items[items.length - 1]
+                  if (!ultimo.id_producto) {
+                    toast({ title: "Completa el producto", description: "Selecciona un producto antes de agregar otro", variant: "destructive" })
+                    return
+                  }
+                  setItems([...items, { id_producto: "", cantidad_productos: "", precio: "" }])
+                  }}>
                   <PlusCircle className="h-4 w-4 mr-1" /> Agregar
                 </Button>
               </div>
