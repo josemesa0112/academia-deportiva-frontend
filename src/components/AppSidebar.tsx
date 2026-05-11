@@ -3,38 +3,45 @@ import {
   ShoppingCart, MapPin, Calendar, ClipboardCheck, FileText, CreditCard, LogOut
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useRol } from "@/hooks/useRol";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Personas", url: "/personas", icon: Users },
-  { title: "Profesores", url: "/profesores", icon: GraduationCap },
-  { title: "Deportistas", url: "/deportistas", icon: Dumbbell },
-  { title: "Proveedores", url: "/proveedores", icon: Truck },
-  { title: "Productos", url: "/productos", icon: Package },
-  { title: "Compras", url: "/compras", icon: ShoppingCart },
-  { title: "Canchas", url: "/canchas", icon: MapPin },
-  { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar },
-  { title: "Asistencias", url: "/asistencias", icon: ClipboardCheck },
-  { title: "Matrículas", url: "/matriculas", icon: FileText },
-  { title: "Mensualidades", url: "/mensualidades", icon: CreditCard },
+const todosLosItems = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
+  { title: "Personas", url: "/personas", icon: Users, roles: [1] },
+  { title: "Profesores", url: "/profesores", icon: GraduationCap, roles: [1] },
+  { title: "Deportistas", url: "/deportistas", icon: Dumbbell, roles: [1, 2] },
+  { title: "Proveedores", url: "/proveedores", icon: Truck, roles: [1] },
+  { title: "Productos", url: "/productos", icon: Package, roles: [1, 4] },
+  { title: "Compras", url: "/compras", icon: ShoppingCart, roles: [1, 4] },
+  { title: "Canchas", url: "/canchas", icon: MapPin, roles: [1, 2] },
+  { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar, roles: [1, 2] },
+  { title: "Asistencias", url: "/asistencias", icon: ClipboardCheck, roles: [1, 2, 3] },
+  { title: "Matrículas", url: "/matriculas", icon: FileText, roles: [1] },
+  { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1, 3] },
 ];
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
   const navigate = useNavigate();
+  const { userRol, loading } = useRol();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
+
+  // Filtrar items según el rol del usuario
+  const itemsFiltrados = todosLosItems.filter(item => {
+    if (!userRol) return item.title === "Dashboard"
+    return item.roles.includes(userRol.id_rol)
+  })
 
   return (
     <Sidebar collapsible="icon">
@@ -45,7 +52,16 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {/* Mostrar nombre y rol del usuario */}
+              {!collapsed && !loading && userRol && (
+                <div className="px-2 py-2 mb-2 rounded-md bg-sidebar-accent/30">
+                  <p className="text-xs font-medium text-sidebar-primary truncate">
+                    {userRol.nombre} {userRol.apellido}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{userRol.nombre_rol}</p>
+                </div>
+              )}
+              {itemsFiltrados.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
