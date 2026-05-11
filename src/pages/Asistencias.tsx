@@ -5,11 +5,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, ClipboardList } from "lucide-react";
+import { Plus, Check, X, ClipboardList, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
 interface AsistenciaItem {
+  id?: string;
   id_deportista: string;
   nombre: string;
   apellido: string;
@@ -22,6 +23,7 @@ export default function Asistencias() {
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
   const [entrenamientos, setEntrenamientos] = useState<any[]>([]);
   const [idEntrenamiento, setIdEntrenamiento] = useState("");
   const [deportistas, setDeportistas] = useState<AsistenciaItem[]>([]);
@@ -70,6 +72,28 @@ export default function Asistencias() {
     }
   }
 
+  // Abrir modal en modo edición cargando asistencias existentes
+  const handleEditar = async (grupo: any) => {
+    setModoEdicion(true)
+    setIdEntrenamiento(String(grupo.id_entrenamiento))
+    setLoadingDeportistas(true)
+    setOpen(true)
+    try {
+      setDeportistas(grupo.deportistas.map((d: any) => ({
+        id: String(d.id),
+        id_deportista: String(d.id_deportista),
+        nombre: d.nombre,
+        apellido: d.apellido,
+        numero_documento: d.numero_documento || "",
+        asistio: d.estado === "Activo"
+      })))
+    } catch {
+      toast({ title: "Error", description: "No se pudo cargar la asistencia", variant: "destructive" })
+    } finally {
+      setLoadingDeportistas(false)
+    }
+  }
+
   const toggleAsistencia = (id: string) => {
     setDeportistas(prev => prev.map(d =>
       d.id_deportista === id ? { ...d, asistio: !d.asistio } : d
@@ -82,21 +106,41 @@ export default function Asistencias() {
       return
     }
     try {
-      for (const d of deportistas) {
-        await api.post("/api/asistencias", {
-          id_deportista: d.id_deportista,
-          id_entrenamiento: idEntrenamiento,
-          id_estado: d.asistio ? "1" : "2"
-        })
+      if (modoEdicion) {
+        // Actualizar registros existentes
+        for (const d of deportistas) {
+          if (d.id) {
+            await api.put(`/api/asistencias/${d.id}`, {
+              id_deportista: d.id_deportista,
+              id_entrenamiento: idEntrenamiento,
+              id_estado: d.asistio ? "1" : "2"
+            })
+          }
+        }
+        toast({ title: "Actualizado", description: "Asistencias actualizadas correctamente" })
+      } else {
+        // Crear nuevos registros
+        for (const d of deportistas) {
+          await api.post("/api/asistencias", {
+            id_deportista: d.id_deportista,
+            id_entrenamiento: idEntrenamiento,
+            id_estado: d.asistio ? "1" : "2"
+          })
+        }
+        toast({ title: "Guardado", description: "Asistencias registradas correctamente" })
       }
-      toast({ title: "Guardado", description: "Asistencias registradas correctamente" })
       fetchData()
-      setOpen(false)
-      setIdEntrenamiento("")
-      setDeportistas([])
+      cerrarModal()
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" })
     }
+  }
+
+  const cerrarModal = () => {
+    setOpen(false)
+    setModoEdicion(false)
+    setIdEntrenamiento("")
+    setDeportistas([])
   }
 
   // Agrupar asistencias por entrenamiento
@@ -119,7 +163,7 @@ export default function Asistencias() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Asistencias</h2>
-        <Button onClick={() => setOpen(true)} className="gap-2">
+        <Button onClick={() => { setModoEdicion(false); setOpen(true) }} className="gap-2">
           <Plus className="h-4 w-4" /> Registrar asistencia
         </Button>
       </div>
@@ -142,13 +186,22 @@ export default function Asistencias() {
                 </p>
                 <p className="text-xs text-muted-foreground">{grupo.cancha || "—"}</p>
               </div>
-              <div className="ml-auto flex gap-2 text-xs">
-                <span className="text-green-500 font-medium">
+              <div className="ml-auto flex items-center gap-3">
+                <span className="text-green-500 font-medium text-xs">
                   {grupo.deportistas.filter((d: any) => d.estado === "Activo").length} presentes
                 </span>
-                <span className="text-red-400 font-medium">
+                <span className="text-red-400 font-medium text-xs">
                   {grupo.deportistas.filter((d: any) => d.estado === "Inactivo").length} ausentes
                 </span>
+                {/* Botón editar */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => handleEditar(grupo)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
             <Table>
@@ -179,25 +232,29 @@ export default function Asistencias() {
       </div>
 
       {/* Modal pase de lista */}
-      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setIdEntrenamiento(""); setDeportistas([]) } }}>
+      <Dialog open={open} onOpenChange={(v) => { if (!v) cerrarModal() }}>
         <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Registrar Asistencia</DialogTitle>
+            <DialogTitle>{modoEdicion ? "Editar" : "Registrar"} Asistencia</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Entrenamiento</Label>
-              <Select value={idEntrenamiento} onValueChange={handleSeleccionarEntrenamiento}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar entrenamiento" /></SelectTrigger>
-                <SelectContent>
-                  {entrenamientos.map((e: any) => (
-                    <SelectItem key={e.id} value={String(e.id)}>
-                      {e.categoria} — {e.fecha?.split("T")[0]} {e.hora_inicio}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+            {/* Selector de entrenamiento solo en modo creación */}
+            {!modoEdicion && (
+              <div className="grid gap-2">
+                <Label>Entrenamiento</Label>
+                <Select value={idEntrenamiento} onValueChange={handleSeleccionarEntrenamiento}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar entrenamiento" /></SelectTrigger>
+                  <SelectContent>
+                    {entrenamientos.map((e: any) => (
+                      <SelectItem key={e.id} value={String(e.id)}>
+                        {e.categoria} — {e.fecha?.split("T")[0]} {e.hora_inicio}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {loadingDeportistas && (
               <div className="text-center py-4 text-muted-foreground text-sm">Cargando deportistas...</div>
@@ -207,7 +264,7 @@ export default function Asistencias() {
               <div className="rounded-lg border overflow-hidden">
                 <div className="p-3 bg-muted/30 border-b">
                   <p className="text-sm font-medium">Pase de lista — {deportistas.length} deportistas</p>
-                  <p className="text-xs text-muted-foreground">Clic en cada deportista para marcar asistencia</p>
+                  <p className="text-xs text-muted-foreground">Clic en cada deportista para cambiar asistencia</p>
                 </div>
                 <Table>
                   <TableHeader>
@@ -250,9 +307,9 @@ export default function Asistencias() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setOpen(false); setIdEntrenamiento(""); setDeportistas([]) }}>Cancelar</Button>
+            <Button variant="outline" onClick={cerrarModal}>Cancelar</Button>
             <Button onClick={handleGuardar} disabled={!idEntrenamiento || deportistas.length === 0}>
-              Guardar asistencia
+              {modoEdicion ? "Actualizar" : "Guardar"} asistencia
             </Button>
           </DialogFooter>
         </DialogContent>
