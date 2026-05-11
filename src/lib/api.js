@@ -1,4 +1,4 @@
-const API_URL = 'https://academia-deportiva-api-24zm.onrender.com/'
+const API_URL = 'https://academia-deportiva-api-24zm.onrender.com'
 
 const api = {
   get: async (endpoint) => {
