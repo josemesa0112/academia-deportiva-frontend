@@ -17,7 +17,7 @@ const api = {
       const error = await res.json()
       // Si tiene array de errores de validación
       if (error.errors && error.errors.length > 0) {
-        throw new Error(error.errors.map((e: any) => e.mensaje).join('\n'))
+        throw new Error(error.errors.map((e) => e.mensaje).join('\n'))
       }
       throw new Error(error.error || `Error ${res.status}`)
     }
@@ -33,7 +33,7 @@ const api = {
     if (!res.ok) {
       const error = await res.json()
       if (error.errors && error.errors.length > 0) {
-        throw new Error(error.errors.map((e: any) => e.mensaje).join('\n'))
+        throw new Error(error.errors.map((e) => e.mensaje).join('\n'))
       }
       throw new Error(error.error || `Error ${res.status}`)
     }
