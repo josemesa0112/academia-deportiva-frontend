@@ -1,6 +1,23 @@
 import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
+import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
+
+// Función que determina el estado visual del entrenamiento según la fecha
+const getEstadoEntrenamiento = (fecha: string, horaFin: string) => {
+  if (!fecha) return null
+  const fechaEntrenamiento = new Date(`${fecha.split("T")[0]}T${horaFin || "23:59"}`)
+  const ahora = new Date()
+  if (fechaEntrenamiento < ahora) {
+    return <Badge className="bg-gray-500/10 text-gray-400 border-gray-500/20">Finalizado</Badge>
+  }
+  const diffMs = fechaEntrenamiento.getTime() - ahora.getTime()
+  const diffHoras = diffMs / (1000 * 60 * 60)
+  if (diffHoras <= 2) {
+    return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">En curso</Badge>
+  }
+  return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">Programado</Badge>
+}
 
 export default function Entrenamientos() {
   const [opciones, setOpciones] = useState({
@@ -31,7 +48,11 @@ export default function Entrenamientos() {
     { key: "hora_fin", label: "Hora fin" },
     { key: "cancha", label: "Cancha" },
     { key: "categoria", label: "Categoría" },
-    { key: "estado", label: "Estado" },
+    {
+      key: "estado_visual",
+      label: "Estado",
+      render: (_v, row) => getEstadoEntrenamiento(row.fecha, row.hora_fin) || <span className="text-muted-foreground">—</span>
+    },
   ];
 
   const formFields: FieldDef[] = [
