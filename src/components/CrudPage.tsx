@@ -102,7 +102,12 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
       await fetchData()
       setOpen(false)
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Ocurrió un error", variant: "destructive" })
+      toast({
+        title: "❌ Error al guardar",
+        description: err.message || "Ocurrió un error",
+        variant: "destructive",
+        duration: 6000, // ← más tiempo visible
+      })
     }
   }
 
