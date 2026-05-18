@@ -36,6 +36,12 @@ export default function Canchas() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["nombre", "barrio", "direccion"]}
+      searchPlaceholder="Buscar por nombre, barrio o dirección..."
+      sortOptions={[
+        { key: "nombre", label: "Nombre (A-Z)", type: "string" },
+        { key: "barrio", label: "Barrio (A-Z)", type: "string" },
+      ]}
     />
   );
 }

@@ -31,7 +31,7 @@ export default function Matriculas() {
   const tableFields: FieldDef[] = [
     { key: "nombre", label: "Nombre" },
     { key: "apellido", label: "Apellido" },
-    { key: "categoria", label: "Categoría" },
+    { key: "numero_documento", label: "Documento" },
     { key: "fecha_inicio", label: "Fecha inicio", render: (v) => v?.split("T")[0] || "—" },
     { key: "valor", label: "Valor", render: (v) => v ? `$${parseInt(v).toLocaleString()}` : "—" },
     { key: "estado", label: "Estado" },
@@ -52,6 +52,13 @@ export default function Matriculas() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["nombre", "apellido", "numero_documento"]}
+      searchPlaceholder="Buscar por nombre o número de documento..."
+      sortOptions={[
+        { key: "nombre", label: "Nombre (A-Z)", type: "string" },
+        { key: "fecha_inicio", label: "Fecha de inicio", type: "date" },
+      ]}
+      groupBy="categoria"
     />
   );
 }

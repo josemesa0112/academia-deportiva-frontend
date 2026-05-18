@@ -71,6 +71,13 @@ export default function Entrenamientos() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["categoria", "cancha"]}
+      searchPlaceholder="Buscar por categoría o cancha..."
+      sortOptions={[
+        { key: "fecha", label: "Fecha (próximas primero)", type: "date" },
+        { key: "categoria", label: "Categoría (A-Z)", type: "string" },
+        { key: "cancha", label: "Cancha (A-Z)", type: "string" },
+      ]}
     />
   );
 }

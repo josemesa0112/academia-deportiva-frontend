@@ -1,91 +1,80 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, GraduationCap, Dumbbell, MapPin, Calendar, CreditCard } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import api from "@/lib/api";
 
-function count(key: string) {
-  try { return JSON.parse(localStorage.getItem(key) || "[]").length; } catch { return 0; }
-}
+type Stat = {
+  label: string;
+  endpoint: string;
+  icon: typeof Users;
+  filter?: (items: any[]) => number;
+};
 
-const stats = [
-  { label: "Total Personas", key: "academia_personas", icon: Users },
-  { label: "Profesores Activos", key: "academia_profesores", icon: GraduationCap },
-  { label: "Deportistas Inscritos", key: "academia_deportistas", icon: Dumbbell },
-  { label: "Entrenamientos Hoy", key: "academia_entrenamientos", icon: Calendar },
-  { label: "Mensualidades Pendientes", key: "academia_mensualidades", icon: CreditCard },
-  { label: "Canchas Registradas", key: "academia_canchas", icon: MapPin },
-];
+const hoy = () => new Date().toISOString().slice(0, 10);
 
-const ingresosData = [
-  { mes: "Ene", ingresos: 2400000 },
-  { mes: "Feb", ingresos: 2800000 },
-  { mes: "Mar", ingresos: 3100000 },
-  { mes: "Abr", ingresos: 2900000 },
-  { mes: "May", ingresos: 3400000 },
-  { mes: "Jun", ingresos: 3200000 },
-];
-
-const asistenciaData = [
-  { dia: "Lun", asistencia: 28 },
-  { dia: "Mar", asistencia: 32 },
-  { dia: "Mié", asistencia: 25 },
-  { dia: "Jue", asistencia: 30 },
-  { dia: "Vie", asistencia: 35 },
-  { dia: "Sáb", asistencia: 40 },
+const stats: Stat[] = [
+  { label: "Total Personas", endpoint: "/api/personas", icon: Users },
+  { label: "Total Profesores", endpoint: "/api/profesores", icon: GraduationCap },
+  { label: "Total Deportistas", endpoint: "/api/deportistas", icon: Dumbbell },
+  {
+    label: "Entrenamientos Hoy",
+    endpoint: "/api/entrenamientos",
+    icon: Calendar,
+    filter: (items) => items.filter((e: any) => String(e.fecha).slice(0, 10) === hoy()).length,
+  },
+  { label: "Total Mensualidades", endpoint: "/api/mensualidades", icon: CreditCard },
+  { label: "Canchas Registradas", endpoint: "/api/canchas", icon: MapPin },
 ];
 
 export default function Dashboard() {
+  const [counts, setCounts] = useState<Record<string, number | null>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      try {
+        const resultados = await Promise.all(
+          stats.map(async (s) => {
+            const data = await api.get(s.endpoint);
+            const items = Array.isArray(data) ? data : [];
+            return [s.endpoint, s.filter ? s.filter(items) : items.length] as const;
+          })
+        );
+        if (!cancelado) setCounts(Object.fromEntries(resultados));
+      } catch (e: any) {
+        if (!cancelado) setError(e?.message || "Error cargando datos");
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        {stats.map(s => (
-          <Card key={s.key}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
-              <s.icon className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{count(s.key)}</div>
-              <p className="text-xs text-muted-foreground mt-1">registros totales</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Ingresos Mensuales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={ingresosData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
-                <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `$${(v / 1000000).toFixed(1)}M`} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, "Ingresos"]} />
-                <Bar dataKey="ingresos" fill="hsl(152, 60%, 28%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Asistencia Semanal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={asistenciaData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
-                <XAxis dataKey="dia" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v: number) => [v, "Deportistas"]} />
-                <Line type="monotone" dataKey="asistencia" stroke="hsl(152, 60%, 28%)" strokeWidth={2} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {error && (
+        <div className="mb-4 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {stats.map((s) => {
+          const valor = counts[s.endpoint];
+          return (
+            <Card key={s.endpoint}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">{s.label}</CardTitle>
+                <s.icon className="h-5 w-5 text-primary" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{valor ?? "…"}</div>
+                <p className="text-xs text-muted-foreground mt-1">registros totales</p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

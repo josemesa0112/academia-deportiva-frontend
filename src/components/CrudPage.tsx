@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -22,24 +22,94 @@ export interface FieldDef {
   render?: (value: string, row: Record<string, string>) => React.ReactNode;
 }
 
+export interface SortOption {
+  key: string;
+  label: string;
+  type?: "string" | "date" | "number";
+}
+
 interface CrudPageProps {
   title: string;
   fields: FieldDef[];
   endpoint: string;
   tableFields?: FieldDef[];
   formFields?: FieldDef[];
+  searchFields?: string[];
+  searchPlaceholder?: string;
+  sortOptions?: SortOption[];
+  groupBy?: string;
+  groupEmptyLabel?: string;
 }
 
-export default function CrudPage({ title, fields, endpoint, tableFields, formFields }: CrudPageProps) {
+const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
+  const aEmpty = a === null || a === undefined || a === "";
+  const bEmpty = b === null || b === undefined || b === "";
+  if (aEmpty && bEmpty) return 0;
+  if (aEmpty) return 1;
+  if (bEmpty) return -1;
+  if (type === "number") return Number(a) - Number(b);
+  if (type === "date") return new Date(String(a)).getTime() - new Date(String(b)).getTime();
+  return String(a).localeCompare(String(b), "es", { sensitivity: "base" });
+};
+
+export default function CrudPage({
+  title,
+  fields,
+  endpoint,
+  tableFields,
+  formFields,
+  searchFields,
+  searchPlaceholder,
+  sortOptions,
+  groupBy,
+  groupEmptyLabel = "Sin asignar",
+}: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortKey, setSortKey] = useState<string>("");
 
   const displayFields = tableFields || fields.filter(f => !f.formOnly);
   const editFields = formFields || fields.filter(f => !f.tableOnly);
+
+  const filteredData = useMemo(() => {
+    let result = data;
+    const q = searchQuery.trim().toLowerCase();
+    if (q && searchFields && searchFields.length > 0) {
+      result = result.filter(row =>
+        searchFields.some(f => {
+          const v = row[f];
+          return v !== null && v !== undefined && String(v).toLowerCase().includes(q);
+        })
+      );
+    }
+    if (sortKey && sortOptions) {
+      const opt = sortOptions.find(o => o.key === sortKey);
+      if (opt) {
+        result = [...result].sort((a, b) => compareValues(a[opt.key], b[opt.key], opt.type));
+      }
+    }
+    return result;
+  }, [data, searchQuery, sortKey, searchFields, sortOptions]);
+
+  const showToolbar = (searchFields && searchFields.length > 0) || (sortOptions && sortOptions.length > 0);
+
+  const groupedData = useMemo(() => {
+    if (!groupBy) return null;
+    const map = new Map<string, Record<string, any>[]>();
+    for (const row of filteredData) {
+      const raw = row[groupBy];
+      const key = raw === null || raw === undefined || raw === "" ? groupEmptyLabel : String(raw);
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [filteredData, groupBy, groupEmptyLabel]);
 
   const fetchData = async () => {
     try {
@@ -167,6 +237,36 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
     return row[f.key] || "—"
   }
 
+  const renderTable = (rows: Record<string, any>[], keyPrefix = "") => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {displayFields.map(f => (
+            <TableHead key={f.key}>{f.label}</TableHead>
+          ))}
+          <TableHead className="w-[120px] text-right">Acciones</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((row, i) => (
+          <TableRow key={`${keyPrefix}${i}`}>
+            {displayFields.map(f => (
+              <TableCell key={f.key}>{renderCellValue(f, row)}</TableCell>
+            ))}
+            <TableCell className="text-right">
+              <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -176,49 +276,77 @@ export default function CrudPage({ title, fields, endpoint, tableFields, formFie
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {displayFields.map(f => (
-                <TableHead key={f.key}>{f.label}</TableHead>
-              ))}
-              <TableHead className="w-[120px] text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={displayFields.length + 1} className="text-center py-8 text-muted-foreground">
-                  Cargando...
-                </TableCell>
-              </TableRow>
-            ) : data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={displayFields.length + 1} className="text-center text-muted-foreground py-8">
-                  No hay registros. Haz clic en "Nuevo" para agregar uno.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.map((row, i) => (
-                <TableRow key={i}>
-                  {displayFields.map(f => (
-                    <TableCell key={f.key}>{renderCellValue(f, row)}</TableCell>
-                  ))}
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {showToolbar && (
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {searchFields && searchFields.length > 0 && (
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                type="text"
+                placeholder={searchPlaceholder || "Buscar..."}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
+          {sortOptions && sortOptions.length > 0 && (
+            <Select value={sortKey || "__none__"} onValueChange={v => setSortKey(v === "__none__" ? "" : v)}>
+              <SelectTrigger className="sm:w-64">
+                <SelectValue placeholder="Ordenar por..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Sin orden</SelectItem>
+                {sortOptions.map(o => (
+                  <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">Cargando...</div>
+      ) : data.length === 0 ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">
+          No hay registros. Haz clic en "Nuevo" para agregar uno.
+        </div>
+      ) : filteredData.length === 0 ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">
+          No hay coincidencias con la búsqueda.
+        </div>
+      ) : groupedData ? (
+        <div className="space-y-4">
+          {groupedData.map(([groupName, rows]) => (
+            <div key={groupName} className="rounded-lg border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
+                <h3 className="font-semibold text-sm">{groupName}</h3>
+                <span className="text-xs text-muted-foreground">
+                  {rows.length} {rows.length === 1 ? "registro" : "registros"}
+                </span>
+              </div>
+              <div className="overflow-auto">
+                {renderTable(rows, `${groupName}-`)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border bg-card overflow-auto">
+          {renderTable(filteredData)}
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+
+const SORT_OPTIONS = [
+  { key: "nombre", label: "Nombre (A-Z)" },
+  { key: "apellido", label: "Apellido (A-Z)" },
+  { key: "categoria", label: "Categoría (A-Z)" },
+] as const;
 
 export default function Deportistas() {
   const { toast } = useToast();
@@ -18,9 +24,35 @@ export default function Deportistas() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortKey, setSortKey] = useState<string>("");
   const [opciones, setOpciones] = useState({
     personas: [], categorias: [], clasificaciones: [], posiciones: [], estados: []
   });
+
+  const filteredData = useMemo(() => {
+    let result = data;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(row =>
+        ["nombre", "apellido", "numero_documento"].some(f => {
+          const v = row[f];
+          return v !== null && v !== undefined && String(v).toLowerCase().includes(q);
+        })
+      );
+    }
+    if (sortKey) {
+      result = [...result].sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return String(av).localeCompare(String(bv), "es", { sensitivity: "base" });
+      });
+    }
+    return result;
+  }, [data, searchQuery, sortKey]);
 
   useEffect(() => {
     cargarOpciones()
@@ -126,6 +158,38 @@ export default function Deportistas() {
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nuevo</Button>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="text"
+            placeholder="Buscar por nombre o número de documento..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9 pr-9"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+        <Select value={sortKey || "__none__"} onValueChange={v => setSortKey(v === "__none__" ? "" : v)}>
+          <SelectTrigger className="sm:w-64"><SelectValue placeholder="Ordenar por..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">Sin orden</SelectItem>
+            {SORT_OPTIONS.map(o => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="rounded-lg border bg-card overflow-auto">
         <Table>
           <TableHeader>
@@ -146,7 +210,9 @@ export default function Deportistas() {
               <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>
             ) : data.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No hay registros.</TableCell></TableRow>
-            ) : data.map((row, i) => (
+            ) : filteredData.length === 0 ? (
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No hay coincidencias con la búsqueda.</TableCell></TableRow>
+            ) : filteredData.map((row, i) => (
               <TableRow key={i}>
                 <TableCell>{row.nombre || "—"}</TableCell>
                 <TableCell>{row.apellido || "—"}</TableCell>

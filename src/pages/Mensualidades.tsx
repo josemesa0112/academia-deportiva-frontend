@@ -49,6 +49,7 @@ export default function Mensualidades() {
   const tableFields: FieldDef[] = [
     { key: "nombre", label: "Nombre" },
     { key: "apellido", label: "Apellido" },
+    { key: "numero_documento", label: "Documento" },
     { key: "mes", label: "Mes", render: (v) => meses.find(m => m.value === String(v))?.label || v },
     { key: "año", label: "Año" },
     { key: "valor", label: "Valor", render: (v) => v ? `$${parseInt(v).toLocaleString()}` : "—" },
@@ -70,6 +71,15 @@ export default function Mensualidades() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["nombre", "apellido", "numero_documento"]}
+      searchPlaceholder="Buscar por nombre o número de documento..."
+      sortOptions={[
+        { key: "nombre", label: "Nombre (A-Z)", type: "string" },
+        { key: "año", label: "Año", type: "number" },
+        { key: "mes", label: "Mes", type: "number" },
+      ]}
+      groupBy="categoria"
+      groupEmptyLabel="Sin categoría"
     />
   );
 }

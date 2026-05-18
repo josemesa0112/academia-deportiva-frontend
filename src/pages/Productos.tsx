@@ -43,6 +43,12 @@ export default function Productos() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["nombre_producto"]}
+      searchPlaceholder="Buscar producto por nombre..."
+      sortOptions={[
+        { key: "nombre_producto", label: "Nombre (A-Z)", type: "string" },
+        { key: "precio_producto", label: "Precio (menor a mayor)", type: "number" },
+      ]}
     />
   );
 }

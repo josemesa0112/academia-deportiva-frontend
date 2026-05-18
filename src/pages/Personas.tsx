@@ -59,6 +59,13 @@ export default function Personas() {
       fields={formFields}
       tableFields={tableFields}
       formFields={formFields}
+      searchFields={["nombre", "apellido", "numero_documento"]}
+      searchPlaceholder="Buscar por nombre o número de documento..."
+      sortOptions={[
+        { key: "nombre", label: "Nombre (A-Z)", type: "string" },
+        { key: "apellido", label: "Apellido (A-Z)", type: "string" },
+        { key: "fecha_nacimiento", label: "Fecha de nacimiento", type: "date" },
+      ]}
     />
   );
 }
