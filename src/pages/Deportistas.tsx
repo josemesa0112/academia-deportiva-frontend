@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -26,9 +26,18 @@ export default function Deportistas() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
+  const [personasRol3, setPersonasRol3] = useState<Record<string, any>[]>([]);
   const [opciones, setOpciones] = useState({
     personas: [], categorias: [], clasificaciones: [], posiciones: [], estados: []
   });
+
+  const personasPendientes = useMemo(() => {
+    if (personasRol3.length === 0) return [];
+    const idsConRegistro = new Set(
+      data.map(d => Number(d.id_persona)).filter(n => !Number.isNaN(n))
+    );
+    return personasRol3.filter(p => !idsConRegistro.has(Number(p.id)));
+  }, [data, personasRol3]);
 
   const filteredData = useMemo(() => {
     let result = data;
@@ -67,13 +76,18 @@ export default function Deportistas() {
       api.get("/api/catalogos/posiciones"),
       api.get("/api/catalogos/estados"),
     ])
+    const clasificacionesPermitidas = ["bajo en grasa", "saludable", "sobrepeso"]
+    const soloRol3 = personas.filter((p: any) => p.id_rol === 3)
+    setPersonasRol3(soloRol3)
     setOpciones({
       // ← Solo personas con rol Deportista (id_rol = 3)
-      personas: personas
-        .filter((p: any) => p.id_rol === 3)
+      personas: soloRol3
         .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
       categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),
-      clasificaciones: clasificaciones.map((c: any) => ({ value: String(c.id), label: c.nombre })),
+      // Solo muestra las 3 clasificaciones por composición corporal
+      clasificaciones: clasificaciones
+        .filter((c: any) => clasificacionesPermitidas.includes(String(c.nombre).trim().toLowerCase()))
+        .map((c: any) => ({ value: String(c.id), label: c.nombre })),
       posiciones: posiciones.map((p: any) => ({ value: String(p.id), label: p.nombre })),
       estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
     })
@@ -92,6 +106,12 @@ export default function Deportistas() {
   }
 
   const openCreate = () => { setForm({}); setEditId(null); setOpen(true) }
+
+  const openCompletar = (persona: Record<string, any>) => {
+    setForm({ id_persona: String(persona.id) })
+    setEditId(null)
+    setOpen(true)
+  }
 
   // ← Convertir todos los IDs a string para que los selects funcionen al editar
   const openEdit = (row: any) => {
@@ -157,6 +177,31 @@ export default function Deportistas() {
         <h2 className="text-2xl font-bold">Deportistas</h2>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nuevo</Button>
       </div>
+
+      {personasPendientes.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <h3 className="text-sm font-semibold">
+              {personasPendientes.length}{" "}
+              {personasPendientes.length === 1 ? "persona pendiente" : "personas pendientes"} de completar como deportista
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {personasPendientes.map(p => (
+              <div key={p.id} className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm">
+                <div className="flex flex-col leading-tight">
+                  <span className="font-medium">{p.nombre} {p.apellido}</span>
+                  <span className="text-muted-foreground text-xs">{p.numero_documento || "—"}</span>
+                </div>
+                <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => openCompletar(p)}>
+                  <UserPlus className="h-3 w-3" /> Completar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">

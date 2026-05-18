@@ -56,6 +56,7 @@ export default function Proveedores() {
         { key: "nombre", label: "Nombre (A-Z)", type: "string" },
         { key: "apellido", label: "Apellido (A-Z)", type: "string" },
       ]}
+      pendingPersonas={{ rolId: 4, personaIdField: "id_persona", rolLabel: "proveedor" }}
     />
   );
 }

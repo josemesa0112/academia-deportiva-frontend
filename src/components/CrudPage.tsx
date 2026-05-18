@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -28,6 +28,12 @@ export interface SortOption {
   type?: "string" | "date" | "number";
 }
 
+interface PendingPersonasConfig {
+  rolId: number;
+  personaIdField: string;
+  rolLabel?: string;
+}
+
 interface CrudPageProps {
   title: string;
   fields: FieldDef[];
@@ -39,6 +45,7 @@ interface CrudPageProps {
   sortOptions?: SortOption[];
   groupBy?: string;
   groupEmptyLabel?: string;
+  pendingPersonas?: PendingPersonasConfig;
 }
 
 const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
@@ -63,6 +70,7 @@ export default function CrudPage({
   sortOptions,
   groupBy,
   groupEmptyLabel = "Sin asignar",
+  pendingPersonas,
 }: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -72,6 +80,7 @@ export default function CrudPage({
   const [form, setForm] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
+  const [personasPendientes, setPersonasPendientes] = useState<Record<string, any>[]>([]);
 
   const displayFields = tableFields || fields.filter(f => !f.formOnly);
   const editFields = formFields || fields.filter(f => !f.tableOnly);
@@ -114,8 +123,20 @@ export default function CrudPage({
   const fetchData = async () => {
     try {
       setLoading(true)
-      const res = await api.get(endpoint)
+      const [res, allPersonas] = await Promise.all([
+        api.get(endpoint),
+        pendingPersonas ? api.get("/api/personas") : Promise.resolve(null),
+      ])
       setData(res)
+      if (pendingPersonas && Array.isArray(allPersonas)) {
+        const idsConRegistro = new Set(
+          (res as any[]).map(r => Number(r[pendingPersonas.personaIdField])).filter(n => !Number.isNaN(n))
+        )
+        const pendientes = allPersonas.filter((p: any) =>
+          Number(p.id_rol) === pendingPersonas.rolId && !idsConRegistro.has(Number(p.id))
+        )
+        setPersonasPendientes(pendientes)
+      }
     } catch (err) {
       toast({ title: "Error", description: "No se pudo cargar los datos", variant: "destructive" })
     } finally {
@@ -127,6 +148,13 @@ export default function CrudPage({
 
   const openCreate = () => {
     setForm({})
+    setEditId(null)
+    setOpen(true)
+  }
+
+  const openCompletar = (persona: Record<string, any>) => {
+    if (!pendingPersonas) return
+    setForm({ [pendingPersonas.personaIdField]: String(persona.id) })
     setEditId(null)
     setOpen(true)
   }
@@ -275,6 +303,32 @@ export default function CrudPage({
           <Plus className="h-4 w-4" /> Nuevo
         </Button>
       </div>
+
+      {pendingPersonas && personasPendientes.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <h3 className="text-sm font-semibold">
+              {personasPendientes.length}{" "}
+              {personasPendientes.length === 1 ? "persona pendiente" : "personas pendientes"} de completar
+              {pendingPersonas.rolLabel ? ` como ${pendingPersonas.rolLabel}` : ""}
+            </h3>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {personasPendientes.map(p => (
+              <div key={p.id} className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm">
+                <div className="flex flex-col leading-tight">
+                  <span className="font-medium">{p.nombre} {p.apellido}</span>
+                  <span className="text-muted-foreground text-xs">{p.numero_documento || "—"}</span>
+                </div>
+                <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => openCompletar(p)}>
+                  <UserPlus className="h-3 w-3" /> Completar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {showToolbar && (
         <div className="flex flex-col sm:flex-row gap-3 mb-4">

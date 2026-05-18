@@ -64,6 +64,7 @@ export default function Personas() {
       sortOptions={[
         { key: "nombre", label: "Nombre (A-Z)", type: "string" },
         { key: "apellido", label: "Apellido (A-Z)", type: "string" },
+        { key: "nombre_rol", label: "Rol (A-Z)", type: "string" },
         { key: "fecha_nacimiento", label: "Fecha de nacimiento", type: "date" },
       ]}
     />
