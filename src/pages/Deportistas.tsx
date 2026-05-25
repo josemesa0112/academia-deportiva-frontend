@@ -15,7 +15,6 @@ import api from "@/lib/api";
 const SORT_OPTIONS = [
   { key: "nombre", label: "Nombre (A-Z)" },
   { key: "apellido", label: "Apellido (A-Z)" },
-  { key: "categoria", label: "Categoría (A-Z)" },
 ] as const;
 
 // Criterios OMS: < 18.5 Bajo en grasa, 18.5-24.9 Saludable, ≥ 25 Sobrepeso
@@ -72,6 +71,20 @@ export default function Deportistas() {
     }
     return result;
   }, [data, searchQuery, sortKey]);
+
+  // Agrupa los deportistas por categoría tras aplicar búsqueda y orden
+  const grouped = useMemo(() => {
+    const map = new Map<string, Record<string, any>[]>();
+    for (const row of filteredData) {
+      const key = row.categoria && String(row.categoria).trim() !== ""
+        ? String(row.categoria)
+        : "Sin categoría";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [filteredData]);
 
   useEffect(() => {
     cargarOpciones()
@@ -249,50 +262,62 @@ export default function Deportistas() {
         </Select>
       </div>
 
-      <div className="rounded-lg border bg-card overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Apellido</TableHead>
-              <TableHead>Categoría</TableHead>
-              <TableHead>Clasificación</TableHead>
-              <TableHead>Peso</TableHead>
-              <TableHead>Estatura</TableHead>
-              <TableHead>Mensualidad</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Cargando...</TableCell></TableRow>
-            ) : data.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No hay registros.</TableCell></TableRow>
-            ) : filteredData.length === 0 ? (
-              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No hay coincidencias con la búsqueda.</TableCell></TableRow>
-            ) : filteredData.map((row, i) => (
-              <TableRow key={i}>
-                <TableCell>{row.nombre || "—"}</TableCell>
-                <TableCell>{row.apellido || "—"}</TableCell>
-                <TableCell>{row.categoria || "—"}</TableCell>
-                <TableCell>{row.clasificacion || "—"}</TableCell>
-                <TableCell>{row.peso_actual ? `${row.peso_actual} kg` : "—"}</TableCell>
-                <TableCell>{row.estatura_actual ? `${row.estatura_actual} m` : "—"}</TableCell>
-                <TableCell>{row.valor_mensualidad ? `$${parseInt(row.valor_mensualidad).toLocaleString()}` : "—"}</TableCell>
-                <TableCell>{row.estado || "—"}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate(`/deportistas/${row.id}`)}>
-                    <User className="h-4 w-4" /> Perfil
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      {loading ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">Cargando...</div>
+      ) : data.length === 0 ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">No hay registros.</div>
+      ) : filteredData.length === 0 ? (
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">No hay coincidencias con la búsqueda.</div>
+      ) : (
+        <div className="space-y-4">
+          {grouped.map(([categoria, rows]) => (
+            <div key={categoria} className="rounded-lg border bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
+                <h3 className="font-semibold text-sm">{categoria}</h3>
+                <span className="text-xs text-muted-foreground">
+                  {rows.length} {rows.length === 1 ? "deportista" : "deportistas"}
+                </span>
+              </div>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Apellido</TableHead>
+                      <TableHead>Clasificación</TableHead>
+                      <TableHead>Peso</TableHead>
+                      <TableHead>Estatura</TableHead>
+                      <TableHead>Mensualidad</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row, i) => (
+                      <TableRow key={`${categoria}-${i}`}>
+                        <TableCell>{row.nombre || "—"}</TableCell>
+                        <TableCell>{row.apellido || "—"}</TableCell>
+                        <TableCell>{row.clasificacion || "—"}</TableCell>
+                        <TableCell>{row.peso_actual ? `${row.peso_actual} kg` : "—"}</TableCell>
+                        <TableCell>{row.estatura_actual ? `${row.estatura_actual} m` : "—"}</TableCell>
+                        <TableCell>{row.valor_mensualidad ? `$${parseInt(row.valor_mensualidad).toLocaleString()}` : "—"}</TableCell>
+                        <TableCell>{row.estado || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate(`/deportistas/${row.id}`)}>
+                            <User className="h-4 w-4" /> Perfil
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
