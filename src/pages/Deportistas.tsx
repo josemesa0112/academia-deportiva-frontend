@@ -18,6 +18,14 @@ const SORT_OPTIONS = [
   { key: "categoria", label: "Categoría (A-Z)" },
 ] as const;
 
+// Criterios OMS: < 18.5 Bajo en grasa, 18.5-24.9 Saludable, ≥ 25 Sobrepeso
+const clasificacionDesdeIMC = (imc: number | null) => {
+  if (imc === null || Number.isNaN(imc)) return null;
+  if (imc < 18.5) return { label: "Bajo en grasa", className: "bg-amber-500/10 text-amber-600 border-amber-500/30" };
+  if (imc < 25) return { label: "Saludable", className: "bg-green-500/10 text-green-600 border-green-500/30" };
+  return { label: "Sobrepeso", className: "bg-red-500/10 text-red-500 border-red-500/30" };
+};
+
 export default function Deportistas() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -30,7 +38,7 @@ export default function Deportistas() {
   const [sortKey, setSortKey] = useState<string>("");
   const [personasRol3, setPersonasRol3] = useState<Record<string, any>[]>([]);
   const [opciones, setOpciones] = useState({
-    personas: [], categorias: [], clasificaciones: [], posiciones: [], estados: []
+    personas: [], categorias: [], posiciones: [], estados: []
   });
 
   const personasPendientes = useMemo(() => {
@@ -71,14 +79,12 @@ export default function Deportistas() {
   }, [])
 
   const cargarOpciones = async () => {
-    const [personas, categorias, clasificaciones, posiciones, estados] = await Promise.all([
+    const [personas, categorias, posiciones, estados] = await Promise.all([
       api.get("/api/personas"),
       api.get("/api/catalogos/categorias"),
-      api.get("/api/catalogos/clasificaciones"),
       api.get("/api/catalogos/posiciones"),
       api.get("/api/catalogos/estados"),
     ])
-    const clasificacionesPermitidas = ["bajo en grasa", "saludable", "sobrepeso"]
     const soloRol3 = personas.filter((p: any) => p.id_rol === 3)
     setPersonasRol3(soloRol3)
     setOpciones({
@@ -86,10 +92,6 @@ export default function Deportistas() {
       personas: soloRol3
         .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
       categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),
-      // Solo muestra las 3 clasificaciones por composición corporal
-      clasificaciones: clasificaciones
-        .filter((c: any) => clasificacionesPermitidas.includes(String(c.nombre).trim().toLowerCase()))
-        .map((c: any) => ({ value: String(c.id), label: c.nombre })),
       posiciones: posiciones.map((p: any) => ({ value: String(p.id), label: p.nombre })),
       estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
     })
@@ -320,13 +322,6 @@ export default function Deportistas() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Clasificación</Label>
-                <Select value={form.id_clasificacion || ""} onValueChange={v => setForm(p => ({ ...p, id_clasificacion: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar clasificación" /></SelectTrigger>
-                  <SelectContent>{(opciones.clasificaciones as any[]).map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
                 <Label>Valor mensualidad</Label>
                 <Input type="number" placeholder="150000" value={form.valor_mensualidad || ""} onChange={e => setForm(p => ({ ...p, valor_mensualidad: e.target.value }))} />
               </div>
@@ -359,6 +354,26 @@ export default function Deportistas() {
                   <Label>% Grasa corporal</Label>
                   <Input type="number" placeholder="15" value={form.porcentaje_grasa_actual || ""} onChange={e => setForm(p => ({ ...p, porcentaje_grasa_actual: e.target.value }))} />
                 </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Clasificación (automática según IMC)</Label>
+                {(() => {
+                  const peso = parseFloat(form.peso_actual || "")
+                  const est = parseFloat(form.estatura_actual || "")
+                  const imc = peso && est ? peso / (est * est) : null
+                  const cls = clasificacionDesdeIMC(imc)
+                  return (
+                    <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 min-h-[40px]">
+                      {cls ? (
+                        <Badge className={cls.className}>{cls.label}</Badge>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          Ingresa peso y estatura para calcular la clasificación
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             </TabsContent>
 
