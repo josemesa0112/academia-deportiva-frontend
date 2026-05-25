@@ -99,9 +99,9 @@ export default function PerfilDeportista() {
     const presentes = asistencias.filter(a => a.estado === "Activo").length;
     const porcentajeAsistencia = totalAsist > 0 ? Math.round((presentes / totalAsist) * 100) : 0;
 
-    const mensualidadesPendientes = mensualidades.filter(m => m.estado !== "Activo").length;
+    const mensualidadesPendientes = mensualidades.filter(m => !m.fecha_pago).length;
     const totalPagado = mensualidades
-      .filter(m => m.estado === "Activo")
+      .filter(m => m.fecha_pago)
       .reduce((sum, m) => sum + Number(m.valor || 0), 0);
 
     const matriculaMasAntigua = matriculas
@@ -393,9 +393,15 @@ export default function PerfilDeportista() {
                         <TableCell>{m.año}</TableCell>
                         <TableCell>{formatMoneda(m.valor)}</TableCell>
                         <TableCell>
-                          <Badge variant={m.estado === "Activo" ? "default" : "outline"} className={m.estado === "Activo" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
-                            {m.estado === "Activo" ? "Pagada" : (m.estado || "Pendiente")}
-                          </Badge>
+                          {m.fecha_pago ? (
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
+                              Pagada · {formatFecha(m.fecha_pago)}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                              Pendiente
+                            </Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

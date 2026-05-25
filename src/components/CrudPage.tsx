@@ -46,6 +46,8 @@ interface CrudPageProps {
   groupBy?: string;
   groupEmptyLabel?: string;
   pendingPersonas?: PendingPersonasConfig;
+  rowActions?: (row: Record<string, any>, refresh: () => void) => React.ReactNode;
+  headerActions?: (refresh: () => void) => React.ReactNode;
 }
 
 const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
@@ -71,6 +73,8 @@ export default function CrudPage({
   groupBy,
   groupEmptyLabel = "Sin asignar",
   pendingPersonas,
+  rowActions,
+  headerActions,
 }: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -272,7 +276,7 @@ export default function CrudPage({
           {displayFields.map(f => (
             <TableHead key={f.key}>{f.label}</TableHead>
           ))}
-          <TableHead className="w-[120px] text-right">Acciones</TableHead>
+          <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -282,6 +286,7 @@ export default function CrudPage({
               <TableCell key={f.key}>{renderCellValue(f, row)}</TableCell>
             ))}
             <TableCell className="text-right">
+              {rowActions && rowActions(row, fetchData)}
               <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -297,11 +302,14 @@ export default function CrudPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <h2 className="text-2xl font-bold">{title}</h2>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Nuevo
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {headerActions && headerActions(fetchData)}
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" /> Nuevo
+          </Button>
+        </div>
       </div>
 
       {pendingPersonas && personasPendientes.length > 0 && (

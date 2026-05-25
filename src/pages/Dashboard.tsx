@@ -22,7 +22,12 @@ const stats: Stat[] = [
     icon: Calendar,
     filter: (items) => items.filter((e: any) => String(e.fecha).slice(0, 10) === hoy()).length,
   },
-  { label: "Total Mensualidades", endpoint: "/api/mensualidades", icon: CreditCard },
+  {
+    label: "Mensualidades Pendientes",
+    endpoint: "/api/mensualidades",
+    icon: CreditCard,
+    filter: (items) => items.filter((m: any) => !m.fecha_pago).length,
+  },
   { label: "Canchas Registradas", endpoint: "/api/canchas", icon: MapPin },
 ];
 
