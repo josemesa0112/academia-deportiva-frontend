@@ -344,7 +344,7 @@ export default function PerfilDeportista() {
                       <TableHead>Fecha inicio</TableHead>
                       <TableHead>Categoría</TableHead>
                       <TableHead>Valor</TableHead>
-                      <TableHead>Estado</TableHead>
+                      <TableHead>Pago</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -354,9 +354,15 @@ export default function PerfilDeportista() {
                         <TableCell>{m.categoria || "—"}</TableCell>
                         <TableCell>{formatMoneda(m.valor)}</TableCell>
                         <TableCell>
-                          <Badge variant={m.estado === "Activo" ? "default" : "outline"} className={m.estado === "Activo" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""}>
-                            {m.estado || "—"}
-                          </Badge>
+                          {m.fecha_pago ? (
+                            <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
+                              Pagada · {formatFecha(m.fecha_pago)}
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                              Pendiente
+                            </Badge>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
