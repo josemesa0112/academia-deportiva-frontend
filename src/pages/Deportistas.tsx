@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -19,6 +20,7 @@ const SORT_OPTIONS = [
 
 export default function Deportistas() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -114,7 +116,17 @@ export default function Deportistas() {
   }
 
   // ← Convertir todos los IDs a string para que los selects funcionen al editar
-  const openEdit = (row: any) => {
+  const openEdit = async (row: any) => {
+    // Cargar posiciones actuales del deportista desde el backend
+    let posicionesStr = ""
+    try {
+      const posData = await api.get(`/api/deportistas/${row.id}/posiciones`)
+      if (Array.isArray(posData)) {
+        posicionesStr = posData.map((p: any) => String(p.id)).join(",")
+      }
+    } catch {
+      // si falla, deja vacío — el usuario puede agregarlas manualmente
+    }
     setForm({
       id_persona: String(row.id_persona),
       id_categoria: String(row.id_categoria),
@@ -125,7 +137,7 @@ export default function Deportistas() {
       IMC_actual: String(row.imc_actual || ""),
       porcentaje_grasa_actual: String(row.porcentaje_grasa_actual || ""),
       valor_mensualidad: String(row.valor_mensualidad || ""),
-      posiciones: row.posiciones || "",
+      posiciones: posicionesStr,
     })
     setEditId(String(row.id))
     setOpen(true)
@@ -268,6 +280,9 @@ export default function Deportistas() {
                 <TableCell>{row.valor_mensualidad ? `$${parseInt(row.valor_mensualidad).toLocaleString()}` : "—"}</TableCell>
                 <TableCell>{row.estado || "—"}</TableCell>
                 <TableCell className="text-right">
+                  <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate(`/deportistas/${row.id}`)}>
+                    <User className="h-4 w-4" /> Perfil
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => openEdit(row)}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                 </TableCell>

@@ -10,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import Personas from "@/pages/Personas";
 import Profesores from "@/pages/Profesores";
 import Deportistas from "@/pages/Deportistas";
+import PerfilDeportista from "@/pages/PerfilDeportista";
 import Proveedores from "@/pages/Proveedores";
 import Productos from "@/pages/Productos";
 import Compras from "@/pages/Compras";
@@ -63,6 +64,7 @@ const App = () => {
               <Route path="/personas" element={<Personas />} />
               <Route path="/profesores" element={<Profesores />} />
               <Route path="/deportistas" element={<Deportistas />} />
+              <Route path="/deportistas/:id" element={<PerfilDeportista />} />
               <Route path="/proveedores" element={<Proveedores />} />
               <Route path="/productos" element={<Productos />} />
               <Route path="/compras" element={<Compras />} />
