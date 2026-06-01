@@ -201,7 +201,7 @@ export default function Compras() {
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No hay registros.</TableCell></TableRow>
             ) : data.map((row, i) => (
               <TableRow key={i}>
-                <TableCell>{row.nombre_proveedor} {row.apellido_proveedor}</TableCell>
+                <TableCell>{row.nombre_proveedor}{row.apellido_proveedor ? ` ${row.apellido_proveedor}` : ""}</TableCell>
                 <TableCell>{row.fecha_compra?.split("T")[0] || "—"}</TableCell>
                 <TableCell>${parseInt(row.total_compra || "0").toLocaleString()}</TableCell>
                 <TableCell>{row.estado || "—"}</TableCell>

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,9 @@ export interface FieldDef {
   formOnly?: boolean;
   tableOnly?: boolean;
   render?: (value: string, row: Record<string, string>) => React.ReactNode;
+  // Si retorna false, el campo no se muestra en el form (ni se valida como
+  // obligatorio). Útil para campos condicionales según otro valor del form.
+  showIf?: (form: Record<string, string>) => boolean;
 }
 
 export interface SortOption {
@@ -200,18 +204,36 @@ export default function CrudPage({
   }
 
   const handleSubmit = async () => {
-    const required = editFields.filter(f => f.type !== "switch")
+    // Solo se exigen los campos que están visibles según showIf
+    // (excluyendo los de tipo switch, que aceptan false como valor válido).
+    const required = editFields.filter(f =>
+      f.type !== "switch" && (!f.showIf || f.showIf(form))
+    )
     const missing = required.some(f => !form[f.key]?.toString().trim())
     if (missing) {
       toast({ title: "Error", description: "Completa todos los campos obligatorios", variant: "destructive" })
       return
     }
+    // Construye el payload limpiando "" y "null" a null real para que la
+    // DB no falle al castear vacíos a integer/numeric. Además, los campos
+    // ocultos por showIf se envían como null (evita que valores antiguos
+    // del form queden viajando al backend cuando la condición cambió).
+    const payload: Record<string, any> = {}
+    for (const [k, v] of Object.entries(form)) {
+      const fieldDef = editFields.find(f => f.key === k)
+      const isHidden = fieldDef?.showIf && !fieldDef.showIf(form)
+      if (isHidden) {
+        payload[k] = null
+      } else {
+        payload[k] = v === "" || v === "null" || v === undefined ? null : v
+      }
+    }
     try {
       if (editId) {
-        await api.put(`${endpoint}/${editId}`, form)
+        await api.put(`${endpoint}/${editId}`, payload)
         toast({ title: "Actualizado", description: "Registro actualizado correctamente" })
       } else {
-        await api.post(endpoint, form)
+        await api.post(endpoint, payload)
         toast({ title: "Creado", description: "Registro creado correctamente" })
       }
       await fetchData()
@@ -245,6 +267,15 @@ export default function CrudPage({
   }
 
   const renderFieldInput = (f: FieldDef) => {
+    if (f.type === "switch") {
+      const checked = form[f.key] === "true" || form[f.key] === true as any
+      return (
+        <Switch
+          checked={checked}
+          onCheckedChange={(val) => setForm(prev => ({ ...prev, [f.key]: val ? "true" : "false" }))}
+        />
+      )
+    }
     if (f.type === "select" && f.options) {
       const options = getFilteredOptions(f)
       return (
@@ -358,7 +389,7 @@ export default function CrudPage({
             {personasPendientes.map(p => (
               <div key={p.id} className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 text-sm">
                 <div className="flex flex-col leading-tight">
-                  <span className="font-medium">{p.nombre} {p.apellido}</span>
+                  <span className="font-medium">{p.nombre}{p.apellido ? ` ${p.apellido}` : ""}</span>
                   <span className="text-muted-foreground text-xs">{p.numero_documento || "—"}</span>
                 </div>
                 <Button size="sm" variant="outline" className="h-7 gap-1" onClick={() => openCompletar(p)}>
@@ -448,12 +479,14 @@ export default function CrudPage({
             <DialogTitle>{editId !== null ? "Editar" : "Nuevo"} {title}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {editFields.map(f => (
-              <div key={f.key} className="grid gap-2">
-                <Label htmlFor={f.key}>{f.label}</Label>
-                {renderFieldInput(f)}
-              </div>
-            ))}
+            {editFields
+              .filter(f => !f.showIf || f.showIf(form))
+              .map(f => (
+                <div key={f.key} className={f.type === "switch" ? "flex items-center justify-between" : "grid gap-2"}>
+                  <Label htmlFor={f.key}>{f.label}</Label>
+                  {renderFieldInput(f)}
+                </div>
+              ))}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
