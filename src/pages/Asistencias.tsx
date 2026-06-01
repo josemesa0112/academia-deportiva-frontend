@@ -151,13 +151,22 @@ export default function Asistencias() {
         id_entrenamiento: key,
         fecha: row.fecha,
         hora_inicio: row.hora_inicio,
+        hora_fin: row.hora_fin,
         cancha: row.cancha,
+        categoria: row.categoria,
         deportistas: []
       }
     }
     acc[key].deportistas.push(row)
     return acc
   }, {})
+
+  // Entrenamientos disponibles para crear asistencia: solo los que NO
+  // tienen ya un grupo de asistencias asociado (no tiene sentido duplicar).
+  const idsConAsistencia = new Set(data.map((r: any) => Number(r.id_entrenamiento)))
+  const entrenamientosDisponibles = entrenamientos.filter(
+    (e: any) => !idsConAsistencia.has(Number(e.id))
+  )
 
   return (
     <div>
@@ -182,7 +191,7 @@ export default function Asistencias() {
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="font-medium text-sm">
-                  {grupo.fecha?.split("T")[0] || "—"} — {grupo.hora_inicio || "—"}
+                  {grupo.categoria || "Sin categoría"} · {grupo.fecha?.split("T")[0] || "—"} · {grupo.hora_inicio || "—"}{grupo.hora_fin ? ` – ${grupo.hora_fin}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">{grupo.cancha || "—"}</p>
               </div>
@@ -239,20 +248,29 @@ export default function Asistencias() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
 
-            {/* Selector de entrenamiento solo en modo creación */}
+            {/* Selector de entrenamiento solo en modo creación.
+                Solo muestra entrenamientos SIN asistencia registrada — para
+                cambiar una existente se usa el botón Editar del grupo. */}
             {!modoEdicion && (
               <div className="grid gap-2">
                 <Label>Entrenamiento</Label>
-                <Select value={idEntrenamiento} onValueChange={handleSeleccionarEntrenamiento}>
-                  <SelectTrigger><SelectValue placeholder="Seleccionar entrenamiento" /></SelectTrigger>
-                  <SelectContent>
-                    {entrenamientos.map((e: any) => (
-                      <SelectItem key={e.id} value={String(e.id)}>
-                        {e.categoria} — {e.fecha?.split("T")[0]} {e.hora_inicio}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {entrenamientosDisponibles.length === 0 ? (
+                  <div className="rounded-md border bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
+                    Todos los entrenamientos ya tienen asistencia registrada.
+                    Usa el botón <span className="font-medium">Editar</span> de cada grupo para modificarla.
+                  </div>
+                ) : (
+                  <Select value={idEntrenamiento} onValueChange={handleSeleccionarEntrenamiento}>
+                    <SelectTrigger><SelectValue placeholder="Seleccionar entrenamiento" /></SelectTrigger>
+                    <SelectContent>
+                      {entrenamientosDisponibles.map((e: any) => (
+                        <SelectItem key={e.id} value={String(e.id)}>
+                          {e.categoria} · {e.fecha?.split("T")[0]} · {e.hora_inicio}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             )}
 
