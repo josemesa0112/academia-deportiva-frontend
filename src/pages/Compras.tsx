@@ -74,11 +74,35 @@ export default function Compras() {
     setOpen(true);
   };
 
-  const openEdit = (row: any) => {
-    setForm({ id_proveedor: String(row.id_proveedor), fecha_compra: row.fecha_compra?.split("T")[0], id_estado: String(row.id_estado) });
-    setItems(row.productos?.map((p: any) => ({ id_producto: String(p.id_producto), cantidad_productos: String(p.cantidad_productos), precio: String(p.precio) })) || [{ id_producto: "", cantidad_productos: "", precio: "" }]);
+  const openEdit = async (row: any) => {
+    // Abre el modal de inmediato con los datos básicos. El detalle de
+    // productos viene en /api/compras/:id (la lista no lo incluye) — lo
+    // cargamos en segundo plano y rellenamos los items.
+    setForm({
+      id_proveedor: String(row.id_proveedor),
+      fecha_compra: row.fecha_compra?.split("T")[0],
+      id_estado: String(row.id_estado),
+    });
+    setItems([{ id_producto: "", cantidad_productos: "", precio: "" }]);
     setEditId(row.id);
     setOpen(true);
+
+    try {
+      const full = await api.get(`/api/compras/${row.id}`);
+      if (Array.isArray(full.productos) && full.productos.length > 0) {
+        setItems(full.productos.map((p: any) => ({
+          id_producto: String(p.id_producto),
+          cantidad_productos: String(p.cantidad_productos),
+          precio: String(p.precio),
+        })));
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error al cargar la compra",
+        description: err?.message || "No se pudo cargar el detalle de productos",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -96,21 +120,34 @@ export default function Compras() {
       toast({ title: "Error", description: "Completa proveedor y fecha", variant: "destructive" });
       return;
     }
+    const itemsValidos = items.filter(
+      it => it.id_producto && it.cantidad_productos && it.precio
+    );
+    if (itemsValidos.length === 0) {
+      toast({
+        title: "Sin productos",
+        description: "Agrega al menos un producto a la compra",
+        variant: "destructive",
+      });
+      return;
+    }
     try {
-      const payload = { ...form, total_compra: total.toString() };
-      let compraId = editId;
+      // Una sola request transaccional: el backend crea/actualiza la
+      // compra y sincroniza los items (DELETE all + INSERT new) atómicamente.
+      const payload = {
+        ...form,
+        total_compra: total.toString(),
+        items: itemsValidos,
+      };
       if (editId) {
         await api.put(`/api/compras/${editId}`, payload);
       } else {
-        const res = await api.post("/api/compras", payload);
-        compraId = res.id;
+        await api.post("/api/compras", payload);
       }
-      for (const item of items) {
-        if (item.id_producto && item.cantidad_productos && item.precio) {
-          await api.post("/api/compras/productos", { ...item, id_compra: compraId });
-        }
-      }
-      toast({ title: editId ? "Actualizado" : "Creado", description: "Compra guardada correctamente" });
+      toast({
+        title: editId ? "Actualizado" : "Creado",
+        description: "Compra guardada correctamente",
+      });
       fetchData();
       setOpen(false);
     } catch (err: any) {
