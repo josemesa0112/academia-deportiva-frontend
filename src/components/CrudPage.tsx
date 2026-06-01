@@ -232,13 +232,32 @@ export default function CrudPage({
     }
   }
 
+  // Cuando hay pendingPersonas configurado, el select de la persona se
+  // restringe a las pendientes + la persona actual (si está en edición).
+  // Esto evita registrar dos veces a la misma persona como proveedor /
+  // profesor / deportista.
+  const getFilteredOptions = (f: FieldDef) => {
+    if (!f.options) return []
+    if (!pendingPersonas || f.key !== pendingPersonas.personaIdField) return f.options
+    const idsPendientes = new Set(personasPendientes.map(p => String(p.id)))
+    const currentValue = form[f.key]
+    return f.options.filter(o => idsPendientes.has(o.value) || o.value === currentValue)
+  }
+
   const renderFieldInput = (f: FieldDef) => {
     if (f.type === "select" && f.options) {
+      const options = getFilteredOptions(f)
       return (
         <Select value={form[f.key] || ""} onValueChange={val => setForm(prev => ({ ...prev, [f.key]: val }))}>
           <SelectTrigger><SelectValue placeholder={f.placeholder || `Seleccionar ${f.label.toLowerCase()}`} /></SelectTrigger>
           <SelectContent>
-            {f.options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            {options.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-muted-foreground">
+                Todas las personas ya están registradas. Crea una nueva persona en la sección Personas.
+              </div>
+            ) : (
+              options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)
+            )}
           </SelectContent>
         </Select>
       )

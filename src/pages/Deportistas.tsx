@@ -48,6 +48,15 @@ export default function Deportistas() {
     return personasRol3.filter(p => !idsConRegistro.has(Number(p.id)));
   }, [data, personasRol3]);
 
+  // Dropdown de persona en el form: solo personas pendientes + la persona
+  // actual si se está editando (para no romper el valor seleccionado).
+  const personasDisponibles = useMemo(() => {
+    const idsPendientes = new Set(personasPendientes.map(p => String(p.id)));
+    return (opciones.personas as any[]).filter(
+      p => idsPendientes.has(p.value) || p.value === form.id_persona
+    );
+  }, [personasPendientes, opciones.personas, form.id_persona]);
+
   const filteredData = useMemo(() => {
     let result = data;
     const q = searchQuery.trim().toLowerCase();
@@ -336,7 +345,15 @@ export default function Deportistas() {
                 <Label>Persona</Label>
                 <Select value={form.id_persona || ""} onValueChange={v => setForm(p => ({ ...p, id_persona: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar persona" /></SelectTrigger>
-                  <SelectContent>{(opciones.personas as any[]).map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {personasDisponibles.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        Todas las personas con rol Deportista ya están registradas.
+                      </div>
+                    ) : (
+                      personasDisponibles.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)
+                    )}
+                  </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
