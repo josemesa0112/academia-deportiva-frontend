@@ -168,7 +168,20 @@ export default function CrudPage({
     const normalized: Record<string, string> = {}
     editFields.forEach(f => {
       const val = row[f.key]
-      normalized[f.key] = val !== null && val !== undefined ? String(val) : ""
+      // Multiselect: si viene un array (puede ser [1,2] o [{id, nombre}, ...])
+      // lo convertimos a CSV de ids para el componente.
+      if (f.type === "multiselect" && Array.isArray(val)) {
+        normalized[f.key] = val
+          .map((item: any) =>
+            typeof item === "object" && item !== null
+              ? String(item.id ?? item.value ?? "")
+              : String(item)
+          )
+          .filter(Boolean)
+          .join(",")
+      } else {
+        normalized[f.key] = val !== null && val !== undefined ? String(val) : ""
+      }
     })
     // Incluir también los campos id_ que pueden no estar en editFields
     Object.keys(row).forEach(key => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
+import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 
 export default function Proveedores() {
@@ -17,7 +18,7 @@ export default function Proveedores() {
         api.get("/api/catalogos/estados"),
       ]);
       setOpciones({
-        // ← Solo personas con rol Proveedor (id_rol = 4)
+        // Solo personas con rol Proveedor (id_rol = 4)
         personas: personas
           .filter((p: any) => p.id_rol === 4)
           .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
@@ -33,13 +34,29 @@ export default function Proveedores() {
     { key: "apellido", label: "Apellido" },
     { key: "numero_documento", label: "Documento" },
     { key: "numero_telefono", label: "Teléfono" },
-    { key: "nombre_producto", label: "Producto" },
+    {
+      key: "productos",
+      label: "Productos",
+      render: (_v, row: any) => {
+        const list = Array.isArray(row.productos) ? row.productos : [];
+        if (list.length === 0) {
+          return <span className="text-muted-foreground text-xs">Sin productos asignados</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {list.map((p: any) => (
+              <Badge key={p.id} variant="outline" className="text-xs">{p.nombre}</Badge>
+            ))}
+          </div>
+        );
+      },
+    },
     { key: "estado", label: "Estado" },
   ];
 
   const formFields: FieldDef[] = [
     { key: "id_persona", label: "Persona", type: "select", options: opciones.personas },
-    { key: "id_producto", label: "Producto", type: "select", options: opciones.productos },
+    { key: "productos", label: "Productos que vende", type: "multiselect", options: opciones.productos },
     { key: "id_estado", label: "Estado", type: "select", options: opciones.estados },
   ];
 

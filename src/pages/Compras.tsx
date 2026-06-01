@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,9 @@ export default function Compras() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [items, setItems] = useState<LineItem[]>([{ id_producto: "", cantidad_productos: "", precio: "" }]);
   const [opciones, setOpciones] = useState({ proveedores: [], productos: [], estados: [] });
+  // Datos crudos de proveedores (con el array productos joineado del backend),
+  // necesarios para filtrar el dropdown de productos según el proveedor elegido.
+  const [proveedoresRaw, setProveedoresRaw] = useState<any[]>([]);
 
   useEffect(() => { cargarOpciones(); fetchData(); }, []);
 
@@ -29,12 +32,21 @@ export default function Compras() {
       api.get("/api/productos"),
       api.get("/api/catalogos/estados"),
     ]);
+    setProveedoresRaw(proveedores);
     setOpciones({
       proveedores: proveedores.map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
       productos: productos.map((p: any) => ({ value: String(p.id), label: p.nombre_producto })),
       estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
     });
   };
+
+  // Solo los productos del proveedor seleccionado actualmente.
+  const productosDelProveedor = useMemo(() => {
+    if (!form.id_proveedor) return [];
+    const prov = proveedoresRaw.find(p => String(p.id) === String(form.id_proveedor));
+    if (!prov || !Array.isArray(prov.productos)) return [];
+    return prov.productos.map((p: any) => ({ value: String(p.id), label: p.nombre }));
+  }, [form.id_proveedor, proveedoresRaw]);
 
   const fetchData = async () => {
     try {
@@ -161,7 +173,17 @@ export default function Compras() {
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Proveedor</Label>
-                <Select value={form.id_proveedor || ""} onValueChange={v => setForm(p => ({ ...p, id_proveedor: v }))}>
+                <Select
+                  value={form.id_proveedor || ""}
+                  onValueChange={v => {
+                    // Si el usuario cambia el proveedor a mitad de la captura,
+                    // limpiamos los items para evitar productos incompatibles.
+                    if (form.id_proveedor && form.id_proveedor !== v) {
+                      setItems([{ id_producto: "", cantidad_productos: "", precio: "" }]);
+                    }
+                    setForm(p => ({ ...p, id_proveedor: v }));
+                  }}
+                >
                   <SelectTrigger><SelectValue placeholder="Seleccionar proveedor" /></SelectTrigger>
                   <SelectContent>{(opciones.proveedores as any[]).map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
                 </Select>
@@ -182,7 +204,7 @@ export default function Compras() {
             <div className="mt-2">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-base font-semibold">Detalle de productos</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => {
+                <Button type="button" variant="outline" size="sm" disabled={!form.id_proveedor || productosDelProveedor.length === 0} onClick={() => {
                   // Verificar que el último item tenga producto seleccionado antes de agregar otro
                   const ultimo = items[items.length - 1]
                   if (!ultimo.id_producto) {
@@ -194,37 +216,49 @@ export default function Compras() {
                   <PlusCircle className="h-4 w-4 mr-1" /> Agregar
                 </Button>
               </div>
-              <div className="rounded-lg border overflow-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Producto</TableHead>
-                      <TableHead>Cantidad</TableHead>
-                      <TableHead>Precio unit.</TableHead>
-                      <TableHead>Subtotal</TableHead>
-                      <TableHead className="w-10"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((it, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell>
-                          <Select value={it.id_producto} onValueChange={v => updateItem(idx, "id_producto", v)}>
-                            <SelectTrigger className="h-8"><SelectValue placeholder="Producto" /></SelectTrigger>
-                            <SelectContent>{(opciones.productos as any[]).map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </TableCell>
+
+              {!form.id_proveedor ? (
+                <div className="rounded-md border bg-muted/30 px-3 py-3 text-sm text-muted-foreground">
+                  Selecciona un proveedor para ver sus productos disponibles.
+                </div>
+              ) : productosDelProveedor.length === 0 ? (
+                <div className="rounded-md border bg-amber-500/5 border-amber-500/30 px-3 py-3 text-sm text-amber-700 dark:text-amber-500">
+                  Este proveedor aún no tiene productos asignados. Edítalo en la sección{" "}
+                  <span className="font-medium">Proveedores</span> para agregar los productos que vende.
+                </div>
+              ) : (
+                <div className="rounded-lg border overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Producto</TableHead>
+                        <TableHead>Cantidad</TableHead>
+                        <TableHead>Precio unit.</TableHead>
+                        <TableHead>Subtotal</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((it, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell>
+                            <Select value={it.id_producto} onValueChange={v => updateItem(idx, "id_producto", v)}>
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Producto" /></SelectTrigger>
+                              <SelectContent>{productosDelProveedor.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </TableCell>
                         <TableCell><Input type="number" className="h-8 w-20" value={it.cantidad_productos} onChange={e => updateItem(idx, "cantidad_productos", e.target.value)} /></TableCell>
                         <TableCell><Input type="number" className="h-8 w-24" value={it.precio} onChange={e => updateItem(idx, "precio", e.target.value)} /></TableCell>
                         <TableCell className="font-medium">${((parseFloat(it.cantidad_productos) || 0) * (parseFloat(it.precio) || 0)).toLocaleString()}</TableCell>
                         <TableCell>
                           {items.length > 1 && <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => setItems(items.filter((_, i2) => i2 !== idx))}><MinusCircle className="h-4 w-4 text-destructive" /></Button>}
                         </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
               <div className="text-right mt-2 font-bold text-lg">Total: ${total.toLocaleString()}</div>
             </div>
           </div>
