@@ -41,11 +41,16 @@ export default function Compras() {
   };
 
   // Solo los productos del proveedor seleccionado actualmente.
+  // Preservamos el precio para poder auto-rellenarlo en la línea de la compra.
   const productosDelProveedor = useMemo(() => {
     if (!form.id_proveedor) return [];
     const prov = proveedoresRaw.find(p => String(p.id) === String(form.id_proveedor));
     if (!prov || !Array.isArray(prov.productos)) return [];
-    return prov.productos.map((p: any) => ({ value: String(p.id), label: p.nombre }));
+    return prov.productos.map((p: any) => ({
+      value: String(p.id),
+      label: p.nombre,
+      precio: p.precio,
+    }));
   }, [form.id_proveedor, proveedoresRaw]);
 
   const fetchData = async () => {
@@ -114,18 +119,25 @@ export default function Compras() {
   };
 
   const updateItem = (idx: number, key: keyof LineItem, val: string) => {
-  // Verificar duplicado al seleccionar producto
-  if (key === "id_producto" && val) {
-    const duplicado = items.some((it, i) => i !== idx && it.id_producto === val)
-    if (duplicado) {
-      toast({ title: "Producto duplicado", description: "Este producto ya fue agregado a la compra", variant: "destructive" })
+    // Al seleccionar producto: validar duplicado y auto-rellenar el precio
+    // con el precio actual del producto (el usuario puede sobrescribirlo).
+    if (key === "id_producto" && val) {
+      const duplicado = items.some((it, i) => i !== idx && it.id_producto === val)
+      if (duplicado) {
+        toast({ title: "Producto duplicado", description: "Este producto ya fue agregado a la compra", variant: "destructive" })
+        return
+      }
+      const producto = productosDelProveedor.find(p => p.value === val)
+      const precioAuto = producto?.precio != null ? String(producto.precio) : ""
+      const newItems = [...items]
+      newItems[idx] = { ...newItems[idx], id_producto: val, precio: precioAuto }
+      setItems(newItems)
       return
     }
+    const newItems = [...items]
+    newItems[idx] = { ...newItems[idx], [key]: val }
+    setItems(newItems)
   }
-  const newItems = [...items]
-  newItems[idx] = { ...newItems[idx], [key]: val }
-  setItems(newItems)
-}
 
   return (
     <div>
