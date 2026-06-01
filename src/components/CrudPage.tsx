@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -89,6 +89,17 @@ export default function CrudPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
   const [personasPendientes, setPersonasPendientes] = useState<Record<string, any>[]>([]);
+  // Grupos colapsados (cuando groupBy está activo). Por defecto todos expandidos.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
+  };
 
   const displayFields = tableFields || fields.filter(f => !f.formOnly);
   const editFields = formFields || fields.filter(f => !f.tableOnly);
@@ -453,19 +464,34 @@ export default function CrudPage({
         </div>
       ) : groupedData ? (
         <div className="space-y-4">
-          {groupedData.map(([groupName, rows]) => (
-            <div key={groupName} className="rounded-lg border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
-                <h3 className="font-semibold text-sm">{groupName}</h3>
-                <span className="text-xs text-muted-foreground">
-                  {rows.length} {rows.length === 1 ? "registro" : "registros"}
-                </span>
+          {groupedData.map(([groupName, rows]) => {
+            const isCollapsed = collapsedGroups.has(groupName);
+            return (
+              <div key={groupName} className="rounded-lg border bg-card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(groupName)}
+                  className="w-full px-4 py-3 border-b bg-muted/30 hover:bg-muted/50 flex items-center justify-between transition-colors text-left"
+                  aria-expanded={!isCollapsed}
+                >
+                  <div className="flex items-center gap-2">
+                    {isCollapsed
+                      ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    <h3 className="font-semibold text-sm">{groupName}</h3>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {rows.length} {rows.length === 1 ? "registro" : "registros"}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="overflow-auto">
+                    {renderTable(rows, `${groupName}-`)}
+                  </div>
+                )}
               </div>
-              <div className="overflow-auto">
-                {renderTable(rows, `${groupName}-`)}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-lg border bg-card overflow-auto">

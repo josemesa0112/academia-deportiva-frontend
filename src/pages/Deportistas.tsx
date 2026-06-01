@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, User, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -36,6 +36,16 @@ export default function Deportistas() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
   const [personasRol3, setPersonasRol3] = useState<Record<string, any>[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupName)) next.delete(groupName);
+      else next.add(groupName);
+      return next;
+    });
+  };
   const [opciones, setOpciones] = useState({
     personas: [], categorias: [], posiciones: [], estados: []
   });
@@ -288,14 +298,27 @@ export default function Deportistas() {
         <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">No hay coincidencias con la búsqueda.</div>
       ) : (
         <div className="space-y-4">
-          {grouped.map(([categoria, rows]) => (
+          {grouped.map(([categoria, rows]) => {
+            const isCollapsed = collapsedGroups.has(categoria);
+            return (
             <div key={categoria} className="rounded-lg border bg-card overflow-hidden">
-              <div className="px-4 py-3 border-b bg-muted/30 flex items-center justify-between">
-                <h3 className="font-semibold text-sm">{categoria}</h3>
+              <button
+                type="button"
+                onClick={() => toggleGroup(categoria)}
+                className="w-full px-4 py-3 border-b bg-muted/30 hover:bg-muted/50 flex items-center justify-between transition-colors text-left"
+                aria-expanded={!isCollapsed}
+              >
+                <div className="flex items-center gap-2">
+                  {isCollapsed
+                    ? <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  <h3 className="font-semibold text-sm">{categoria}</h3>
+                </div>
                 <span className="text-xs text-muted-foreground">
                   {rows.length} {rows.length === 1 ? "deportista" : "deportistas"}
                 </span>
-              </div>
+              </button>
+              {!isCollapsed && (
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
@@ -332,8 +355,10 @@ export default function Deportistas() {
                   </TableBody>
                 </Table>
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
