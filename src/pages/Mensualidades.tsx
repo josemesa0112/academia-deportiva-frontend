@@ -40,6 +40,12 @@ export default function Mensualidades() {
     estados: [],
   });
 
+  // Título dinámico: refleja el mes y año del periodo que se muestra.
+  const ahora = new Date();
+  const mesActualLabel = meses[ahora.getMonth()].label;
+  const añoActual = ahora.getFullYear();
+  const tituloPagina = `Mensualidades · ${mesActualLabel} ${añoActual}`;
+
   useEffect(() => {
     const cargarOpciones = async () => {
       const [deportistas, estados] = await Promise.all([
@@ -80,12 +86,13 @@ export default function Mensualidades() {
     }
   };
 
+  // Mes y año no se muestran como columnas porque toda la tabla refleja
+  // un único periodo (el del título). El historial completo de cada
+  // deportista vive en su perfil.
   const tableFields: FieldDef[] = [
     { key: "nombre", label: "Nombre" },
     { key: "apellido", label: "Apellido" },
     { key: "numero_documento", label: "Documento" },
-    { key: "mes", label: "Mes", render: (v) => meses.find(m => m.value === String(v))?.label || v },
-    { key: "año", label: "Año" },
     { key: "valor", label: "Valor", render: (v) => v ? `$${parseInt(v).toLocaleString()}` : "—" },
     {
       key: "fecha_pago",
@@ -113,7 +120,7 @@ export default function Mensualidades() {
 
   return (
     <CrudPage
-      title="Mensualidades"
+      title={tituloPagina}
       endpoint="/api/mensualidades"
       fields={formFields}
       tableFields={tableFields}
@@ -122,8 +129,6 @@ export default function Mensualidades() {
       searchPlaceholder="Buscar por nombre o número de documento..."
       sortOptions={[
         { key: "nombre", label: "Nombre (A-Z)", type: "string" },
-        { key: "año", label: "Año", type: "number" },
-        { key: "mes", label: "Mes", type: "number" },
         { key: "fecha_pago", label: "Estado de pago", type: "date" },
       ]}
       groupBy="categoria"
