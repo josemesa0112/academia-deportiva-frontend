@@ -139,7 +139,10 @@ export default function Deportistas() {
     setOpen(true)
   }
 
-  // ← Convertir todos los IDs a string para que los selects funcionen al editar
+  // Convierte cualquier valor a string para los inputs, pero null/undefined
+  // se mapean a "" (no a "null", que rompe los selects y el backend).
+  const toStr = (v: any) => (v !== null && v !== undefined ? String(v) : "")
+
   const openEdit = async (row: any) => {
     // Cargar posiciones actuales del deportista desde el backend
     let posicionesStr = ""
@@ -152,15 +155,15 @@ export default function Deportistas() {
       // si falla, deja vacío — el usuario puede agregarlas manualmente
     }
     setForm({
-      id_persona: String(row.id_persona),
-      id_categoria: String(row.id_categoria),
-      id_clasificacion: String(row.id_clasificacion),
-      id_estado: String(row.id_estado),
-      peso_actual: String(row.peso_actual || ""),
-      estatura_actual: String(row.estatura_actual || ""),
-      IMC_actual: String(row.imc_actual || ""),
-      porcentaje_grasa_actual: String(row.porcentaje_grasa_actual || ""),
-      valor_mensualidad: String(row.valor_mensualidad || ""),
+      id_persona: toStr(row.id_persona),
+      id_categoria: toStr(row.id_categoria),
+      id_clasificacion: toStr(row.id_clasificacion),
+      id_estado: toStr(row.id_estado),
+      peso_actual: toStr(row.peso_actual),
+      estatura_actual: toStr(row.estatura_actual),
+      IMC_actual: toStr(row.imc_actual),
+      porcentaje_grasa_actual: toStr(row.porcentaje_grasa_actual),
+      valor_mensualidad: toStr(row.valor_mensualidad),
       posiciones: posicionesStr,
     })
     setEditId(String(row.id))
@@ -185,7 +188,13 @@ export default function Deportistas() {
     const imc = form.peso_actual && form.estatura_actual
       ? (parseFloat(form.peso_actual) / Math.pow(parseFloat(form.estatura_actual), 2)).toFixed(2)
       : form.IMC_actual || "0"
-    const payload = { ...form, IMC_actual: imc }
+    // Limpia strings vacíos a null real para que el backend no los convierta
+    // en "null" / "" al castear a integer o numeric.
+    const cleaned: Record<string, any> = {}
+    for (const [k, v] of Object.entries({ ...form, IMC_actual: imc })) {
+      cleaned[k] = v === "" || v === "null" ? null : v
+    }
+    const payload = cleaned
     try {
       if (editId) {
         await api.put(`/api/deportistas/${editId}`, payload)
