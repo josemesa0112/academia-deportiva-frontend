@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BadgeDollarSign, CalendarPlus } from "lucide-react";
+import { BadgeDollarSign, CalendarPlus, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -70,6 +70,16 @@ export default function Mensualidades() {
       refresh();
     } catch (err: any) {
       toast({ title: "Error", description: err?.message || "No se pudo registrar el pago", variant: "destructive" });
+    }
+  };
+
+  const handleRevertir = async (id: string, refresh: () => void) => {
+    try {
+      await api.post(`/api/mensualidades/${id}/revertir-pago`, {});
+      toast({ title: "Pago revertido", description: "La mensualidad vuelve a estado pendiente." });
+      refresh();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo revertir el pago", variant: "destructive" });
     }
   };
 
@@ -148,7 +158,16 @@ export default function Mensualidades() {
           >
             <BadgeDollarSign className="h-4 w-4" /> Pagar
           </Button>
-        ) : null
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+            onClick={() => handleRevertir(String(row.id), refresh)}
+          >
+            <Undo2 className="h-4 w-4" /> Revertir
+          </Button>
+        )
       }
     />
   );
