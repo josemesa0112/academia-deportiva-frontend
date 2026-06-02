@@ -57,6 +57,8 @@ interface CrudPageProps {
   dataFilter?: (row: Record<string, any>) => boolean;
   // Mensaje cuando el filtro deja la lista vacía (sobreescribe el genérico).
   emptyFilteredMessage?: string;
+  // Si false, oculta el botón "Nuevo" (ej. profesor sin categorías).
+  canCreate?: boolean;
 }
 
 const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
@@ -86,6 +88,7 @@ export default function CrudPage({
   headerActions,
   dataFilter,
   emptyFilteredMessage,
+  canCreate = true,
 }: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -388,9 +391,11 @@ export default function CrudPage({
         <h2 className="text-2xl font-bold">{title}</h2>
         <div className="flex items-center gap-2 flex-wrap">
           {headerActions && headerActions(fetchData)}
-          <Button onClick={openCreate} className="gap-2">
-            <Plus className="h-4 w-4" /> Nuevo
-          </Button>
+          {canCreate && (
+            <Button onClick={openCreate} className="gap-2">
+              <Plus className="h-4 w-4" /> Nuevo
+            </Button>
+          )}
         </div>
       </div>
 

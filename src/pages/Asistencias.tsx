@@ -204,9 +204,11 @@ export default function Asistencias() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Asistencias</h2>
-        <Button onClick={() => { setModoEdicion(false); setOpen(true) }} className="gap-2">
-          <Plus className="h-4 w-4" /> Registrar asistencia
-        </Button>
+        {!profesorSinCategorias && (
+          <Button onClick={() => { setModoEdicion(false); setOpen(true) }} className="gap-2">
+            <Plus className="h-4 w-4" /> Registrar asistencia
+          </Button>
+        )}
       </div>
 
       {/* Lista de entrenamientos con asistencias */}

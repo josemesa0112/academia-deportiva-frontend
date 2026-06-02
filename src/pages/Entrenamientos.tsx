@@ -43,6 +43,16 @@ export default function Entrenamientos() {
     userRol?.id_rol === 2 &&
     (!userRol.profesor_categorias || userRol.profesor_categorias.length === 0);
 
+  // Opciones de categoría visibles en el form: para Profesor solo sus
+  // categorías asignadas (al crear y al editar). Admin ve todas.
+  const categoriasParaForm = useMemo(() => {
+    if (!idsCategoriaPermitidas) return opciones.categorias;
+    return (opciones.categorias as any[]).filter(c => idsCategoriaPermitidas.has(Number(c.value)));
+  }, [opciones.categorias, idsCategoriaPermitidas]);
+
+  // Profesor sin categorías → no puede crear entrenamientos
+  const puedeCrear = !profesorSinCategorias;
+
   useEffect(() => {
     const cargarOpciones = async () => {
       const [canchas, categorias, estados] = await Promise.all([
@@ -74,7 +84,7 @@ export default function Entrenamientos() {
 
   const formFields: FieldDef[] = [
     { key: "id_cancha", label: "Cancha", type: "select", options: opciones.canchas },
-    { key: "id_categoria", label: "Categoría", type: "select", options: opciones.categorias },
+    { key: "id_categoria", label: "Categoría", type: "select", options: categoriasParaForm },
     { key: "fecha", label: "Fecha", type: "date" },
     { key: "hora_inicio", label: "Hora inicio", type: "time" },
     { key: "hora_fin", label: "Hora fin", type: "time" },
@@ -101,6 +111,7 @@ export default function Entrenamientos() {
           ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
           : undefined
       }
+      canCreate={puedeCrear}
     />
   );
 }
