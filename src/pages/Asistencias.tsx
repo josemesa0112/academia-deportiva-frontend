@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Check, X, ClipboardList, Pencil } from "lucide-react";
+import { Plus, Check, X, ClipboardList, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -28,6 +28,16 @@ export default function Asistencias() {
   const [idEntrenamiento, setIdEntrenamiento] = useState("");
   const [deportistas, setDeportistas] = useState<AsistenciaItem[]>([]);
   const [loadingDeportistas, setLoadingDeportistas] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupKey: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetchData()
@@ -185,17 +195,30 @@ export default function Asistencias() {
           <div className="text-center py-8 text-muted-foreground rounded-lg border bg-card">
             No hay asistencias registradas. Haz clic en "Registrar asistencia" para comenzar.
           </div>
-        ) : Object.values(agrupadas).map((grupo: any) => (
-          <div key={grupo.id_entrenamiento} className="rounded-lg border bg-card overflow-hidden">
-            <div className="p-4 border-b bg-muted/30 flex items-center gap-3">
-              <ClipboardList className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="font-medium text-sm">
-                  {grupo.categoria || "Sin categoría"} · {grupo.fecha?.split("T")[0] || "—"} · {grupo.hora_inicio || "—"}{grupo.hora_fin ? ` – ${grupo.hora_fin}` : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">{grupo.cancha || "—"}</p>
-              </div>
-              <div className="ml-auto flex items-center gap-3">
+        ) : Object.values(agrupadas).map((grupo: any) => {
+          const groupKey = String(grupo.id_entrenamiento);
+          const isCollapsed = collapsedGroups.has(groupKey);
+          return (
+          <div key={groupKey} className="rounded-lg border bg-card overflow-hidden">
+            <div className="border-b bg-muted/30 flex items-center gap-3 hover:bg-muted/50 transition-colors">
+              <button
+                type="button"
+                onClick={() => toggleGroup(groupKey)}
+                aria-expanded={!isCollapsed}
+                className="flex-1 flex items-center gap-3 p-4 text-left"
+              >
+                {isCollapsed
+                  ? <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+                <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">
+                    {grupo.categoria || "Sin categoría"} · {grupo.fecha?.split("T")[0] || "—"} · {grupo.hora_inicio || "—"}{grupo.hora_fin ? ` – ${grupo.hora_fin}` : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{grupo.cancha || "—"}</p>
+                </div>
+              </button>
+              <div className="flex items-center gap-3 pr-4">
                 <span className="text-green-500 font-medium text-xs">
                   {grupo.deportistas.filter((d: any) => d.estado === "Activo").length} presentes
                 </span>
@@ -213,31 +236,34 @@ export default function Asistencias() {
                 </Button>
               </div>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Apellido</TableHead>
-                  <TableHead>Asistencia</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {grupo.deportistas.map((d: any, i: number) => (
-                  <TableRow key={i}>
-                    <TableCell>{d.nombre || "—"}</TableCell>
-                    <TableCell>{d.apellido || "—"}</TableCell>
-                    <TableCell>
-                      {d.estado === "Activo"
-                        ? <Badge className="bg-green-500/10 text-green-500 border-green-500/20"><Check className="h-3 w-3 mr-1" />Presente</Badge>
-                        : <Badge variant="outline" className="text-red-400 border-red-400/20"><X className="h-3 w-3 mr-1" />Ausente</Badge>
-                      }
-                    </TableCell>
+            {!isCollapsed && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Apellido</TableHead>
+                    <TableHead>Asistencia</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {grupo.deportistas.map((d: any, i: number) => (
+                    <TableRow key={i}>
+                      <TableCell>{d.nombre || "—"}</TableCell>
+                      <TableCell>{d.apellido || "—"}</TableCell>
+                      <TableCell>
+                        {d.estado === "Activo"
+                          ? <Badge className="bg-green-500/10 text-green-500 border-green-500/20"><Check className="h-3 w-3 mr-1" />Presente</Badge>
+                          : <Badge variant="outline" className="text-red-400 border-red-400/20"><X className="h-3 w-3 mr-1" />Ausente</Badge>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Modal pase de lista */}
