@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BadgeDollarSign, Undo2 } from "lucide-react";
+import { BadgeDollarSign, Undo2, CalendarPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -59,6 +59,19 @@ export default function Matriculas() {
     }
   };
 
+  const handleGenerarAño = async (refresh: () => void) => {
+    try {
+      const res: any = await api.post("/api/matriculas/generar-anio", {});
+      toast({
+        title: res?.creadas > 0 ? "Matrículas generadas" : "Sin cambios",
+        description: res?.message || "Operación completada",
+      });
+      refresh();
+    } catch (err: any) {
+      toast({ title: "Error", description: err?.message || "No se pudo generar el año", variant: "destructive" });
+    }
+  };
+
   const tableFields: FieldDef[] = [
     { key: "nombre", label: "Nombre" },
     { key: "apellido", label: "Apellido" },
@@ -104,6 +117,11 @@ export default function Matriculas() {
         { key: "fecha_pago", label: "Estado de pago", type: "date" },
       ]}
       groupBy="categoria"
+      headerActions={(refresh) => (
+        <Button variant="outline" className="gap-2" onClick={() => handleGenerarAño(refresh)}>
+          <CalendarPlus className="h-4 w-4" /> Generar matrículas
+        </Button>
+      )}
       rowActions={(row, refresh) =>
         !row.fecha_pago ? (
           <Button
