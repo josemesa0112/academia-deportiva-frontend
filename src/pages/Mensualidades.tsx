@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BadgeDollarSign, CalendarPlus, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 const meses = [
@@ -35,6 +37,14 @@ const formatFechaPago = (val: any) => {
 
 export default function Mensualidades() {
   const { toast } = useToast();
+  const { userRol } = useRol();
+
+  // Defensa: un deportista que llegue por URL directa a /mensualidades se
+  // redirige a su perfil, donde tiene su propio historial de pagos.
+  if (userRol?.id_rol === 3) {
+    return <Navigate to="/mi-perfil" replace />;
+  }
+
   const [opciones, setOpciones] = useState({
     deportistas: [],
     estados: [],

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, GraduationCap, Dumbbell, Truck, Package,
-  ShoppingCart, MapPin, Calendar, ClipboardCheck, FileText, CreditCard, LogOut
+  ShoppingCart, MapPin, Calendar, ClipboardCheck, FileText, CreditCard, LogOut, User
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import {
 
 const todosLosItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
+  { title: "Mi Perfil", url: "/mi-perfil", icon: User, roles: [3] },
   { title: "Personas", url: "/personas", icon: Users, roles: [1] },
   { title: "Profesores", url: "/profesores", icon: GraduationCap, roles: [1] },
   { title: "Deportistas", url: "/deportistas", icon: Dumbbell, roles: [1, 2] },
@@ -20,10 +21,10 @@ const todosLosItems = [
   { title: "Productos", url: "/productos", icon: Package, roles: [1, 4] },
   { title: "Compras", url: "/compras", icon: ShoppingCart, roles: [1, 4] },
   { title: "Canchas", url: "/canchas", icon: MapPin, roles: [1, 2] },
-  { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar, roles: [1, 2] },
+  { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar, roles: [1, 2, 3] },
   { title: "Asistencias", url: "/asistencias", icon: ClipboardCheck, roles: [1, 2, 3] },
   { title: "Matrículas", url: "/matriculas", icon: FileText, roles: [1] },
-  { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1, 3] },
+  { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1] },
 ];
 
 export function AppSidebar() {

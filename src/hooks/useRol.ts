@@ -12,6 +12,10 @@ export interface UserRol {
   // Si el usuario es Profesor (id_rol === 2), trae sus categorías asignadas.
   // Para otros roles es null o undefined.
   profesor_categorias?: { id: number; nombre: string }[] | null
+  // Si el usuario es Deportista (id_rol === 3), trae su id de deportista,
+  // categoría asignada y nombre de categoría. Usado para filtros y redirect
+  // de "Mi Perfil".
+  deportista_info?: { id: number; id_categoria: number; categoria: string } | null
 }
 
 export function useRol() {

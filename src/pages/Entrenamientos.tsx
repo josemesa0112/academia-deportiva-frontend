@@ -28,11 +28,19 @@ export default function Entrenamientos() {
     estados: [],
   });
 
-  // Si es Profesor (rol 2), solo ve entrenamientos de sus categorías.
-  // Admin (y otros) ven todo.
+  // Filtro por categoría según el rol:
+  //   - Admin (rol 1): ve todo, puede crear con cualquier categoría.
+  //   - Profesor (rol 2): solo sus categorías asignadas, puede crear/editar en ellas.
+  //   - Deportista (rol 3): solo su propia categoría, NO puede crear ni editar.
   const idsCategoriaPermitidas = useMemo(() => {
-    if (userRol?.id_rol !== 2) return null;
-    return new Set((userRol.profesor_categorias || []).map(c => Number(c.id)));
+    if (userRol?.id_rol === 2) {
+      return new Set((userRol.profesor_categorias || []).map(c => Number(c.id)));
+    }
+    if (userRol?.id_rol === 3) {
+      const idCat = userRol.deportista_info?.id_categoria;
+      return new Set(idCat ? [Number(idCat)] : []);
+    }
+    return null;
   }, [userRol]);
 
   const dataFilter = idsCategoriaPermitidas
@@ -42,16 +50,28 @@ export default function Entrenamientos() {
   const profesorSinCategorias =
     userRol?.id_rol === 2 &&
     (!userRol.profesor_categorias || userRol.profesor_categorias.length === 0);
+  const deportistaSinCategoria =
+    userRol?.id_rol === 3 && !userRol.deportista_info?.id_categoria;
 
   // Opciones de categoría visibles en el form: para Profesor solo sus
-  // categorías asignadas (al crear y al editar). Admin ve todas.
+  // categorías asignadas. Admin ve todas. Deportista no llega a usarlo
+  // porque no puede crear (canCreate = false).
   const categoriasParaForm = useMemo(() => {
     if (!idsCategoriaPermitidas) return opciones.categorias;
     return (opciones.categorias as any[]).filter(c => idsCategoriaPermitidas.has(Number(c.value)));
   }, [opciones.categorias, idsCategoriaPermitidas]);
 
-  // Profesor sin categorías → no puede crear entrenamientos
-  const puedeCrear = !profesorSinCategorias;
+  // Solo Admin y Profesor (con categorías) pueden crear entrenamientos.
+  const puedeCrear =
+    userRol?.id_rol === 1 || (userRol?.id_rol === 2 && !profesorSinCategorias);
+
+  const emptyMessage = profesorSinCategorias
+    ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
+    : deportistaSinCategoria
+    ? "Tu cuenta no tiene una categoría asignada. Contacta al administrador."
+    : userRol?.id_rol === 3
+    ? "Aún no hay entrenamientos programados para tu categoría."
+    : undefined;
 
   useEffect(() => {
     const cargarOpciones = async () => {
@@ -106,11 +126,7 @@ export default function Entrenamientos() {
         { key: "cancha", label: "Cancha (A-Z)", type: "string" },
       ]}
       dataFilter={dataFilter}
-      emptyFilteredMessage={
-        profesorSinCategorias
-          ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
-          : undefined
-      }
+      emptyFilteredMessage={emptyMessage}
       canCreate={puedeCrear}
     />
   );

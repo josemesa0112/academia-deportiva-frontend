@@ -155,12 +155,23 @@ export default function Asistencias() {
     setDeportistas([])
   }
 
-  // Si el usuario es Profesor (rol 2), solo ve datos de sus categorías.
-  // Admin (y otros) ven todo.
-  const idsCategoriaPermitidas = userRol?.id_rol === 2
-    ? new Set((userRol.profesor_categorias || []).map(c => Number(c.id)))
-    : null
+  // Filtro por categoría según el rol:
+  //   - Admin (rol 1): ve todo.
+  //   - Profesor (rol 2): solo sus categorías asignadas.
+  //   - Deportista (rol 3): solo su propia categoría.
+  let idsCategoriaPermitidas: Set<number> | null = null
+  if (userRol?.id_rol === 2) {
+    idsCategoriaPermitidas = new Set((userRol.profesor_categorias || []).map(c => Number(c.id)))
+  } else if (userRol?.id_rol === 3) {
+    const idCat = userRol.deportista_info?.id_categoria
+    idsCategoriaPermitidas = new Set(idCat ? [Number(idCat)] : [])
+  }
+
   const profesorSinCategorias = userRol?.id_rol === 2 && (idsCategoriaPermitidas?.size === 0)
+  const deportistaSinCategoria = userRol?.id_rol === 3 && (idsCategoriaPermitidas?.size === 0)
+  // Solo Admin y Profesor (con categorías) pueden registrar asistencias.
+  const puedeRegistrarAsistencia =
+    userRol?.id_rol === 1 || (userRol?.id_rol === 2 && !profesorSinCategorias)
 
   const dataFiltrada = idsCategoriaPermitidas
     ? data.filter((row: any) => {
@@ -204,7 +215,7 @@ export default function Asistencias() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Asistencias</h2>
-        {!profesorSinCategorias && (
+        {puedeRegistrarAsistencia && (
           <Button onClick={() => { setModoEdicion(false); setOpen(true) }} className="gap-2">
             <Plus className="h-4 w-4" /> Registrar asistencia
           </Button>
@@ -219,6 +230,10 @@ export default function Asistencias() {
           <div className="text-center py-8 text-muted-foreground rounded-lg border bg-card">
             {profesorSinCategorias
               ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
+              : deportistaSinCategoria
+              ? "Tu cuenta no tiene una categoría asignada. Contacta al administrador."
+              : userRol?.id_rol === 3
+              ? "Aún no hay asistencias registradas en tu categoría."
               : "No hay asistencias registradas. Haz clic en \"Registrar asistencia\" para comenzar."}
           </div>
         ) : Object.values(agrupadas).map((grupo: any) => {

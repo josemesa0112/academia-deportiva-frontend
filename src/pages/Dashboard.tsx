@@ -218,11 +218,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Bloque KPIs operativos — 4 chicos */}
+      {/* Bloque KPIs operativos — 4 chicos. Solo Admin puede navegar
+          desde estas tarjetas; para otros roles son solo informativas. */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <KpiCompact icon={Dumbbell} label="Deportistas" value={data.conteos.deportistas} onClick={() => navigate("/deportistas")} />
-        <KpiCompact icon={GraduationCap} label="Profesores" value={data.conteos.profesores} onClick={() => navigate("/profesores")} />
-        <KpiCompact icon={Users} label="Proveedores" value={data.conteos.proveedores} onClick={() => navigate("/proveedores")} />
+        <KpiCompact icon={Dumbbell} label="Deportistas" value={data.conteos.deportistas} onClick={esAdmin ? () => navigate("/deportistas") : undefined} />
+        <KpiCompact icon={GraduationCap} label="Profesores" value={data.conteos.profesores} onClick={esAdmin ? () => navigate("/profesores") : undefined} />
+        <KpiCompact icon={Users} label="Proveedores" value={data.conteos.proveedores} onClick={esAdmin ? () => navigate("/proveedores") : undefined} />
         <KpiCompact
           icon={Activity}
           label="Asistencia 4 semanas"
@@ -351,9 +352,11 @@ export default function Dashboard() {
               <CalendarDays className="h-4 w-4 text-blue-500" />
               Próximos entrenamientos
             </CardTitle>
-            <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/entrenamientos")}>
-              Ver todos <ArrowRight className="h-3 w-3" />
-            </Button>
+            {esAdmin && (
+              <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/entrenamientos")}>
+                Ver todos <ArrowRight className="h-3 w-3" />
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {data.proximos_entrenamientos.length === 0 ? (
