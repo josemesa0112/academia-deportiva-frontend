@@ -19,7 +19,7 @@ export default function Profesores() {
       ]);
       setOpciones({
         personas: personas
-          .filter((p: any) => p.id_rol === 2)
+          .filter((p: any) => p.id_rol === 2 && p.id_estado === 1)
           .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
         estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
         categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),

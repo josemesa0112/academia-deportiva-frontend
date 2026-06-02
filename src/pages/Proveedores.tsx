@@ -20,7 +20,7 @@ export default function Proveedores() {
       setOpciones({
         // Solo personas con rol Proveedor (id_rol = 4)
         personas: personas
-          .filter((p: any) => p.id_rol === 4)
+          .filter((p: any) => p.id_rol === 4 && p.id_estado === 1)
           .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
         productos: productos.map((p: any) => ({ value: String(p.id), label: p.nombre_producto })),
         estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),

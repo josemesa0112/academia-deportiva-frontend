@@ -1,8 +1,20 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Outlet } from "react-router-dom";
+import { useRol } from "@/hooks/useRol";
+import CuentaInactiva from "@/pages/CuentaInactiva";
 
 export default function AppLayout() {
+  const { userRol, loading } = useRol();
+
+  // Si la persona existe en tbd_persona pero está inactiva (id_estado === 2),
+  // bloqueamos toda la app y mostramos pantalla con opción de cerrar sesión.
+  // Personas inexistentes (userRol === null) no caen aquí — su acceso
+  // queda limitado por el sidebar (ya solo verán "Dashboard").
+  if (!loading && userRol && userRol.id_estado !== 1) {
+    return <CuentaInactiva />;
+  }
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

@@ -9,6 +9,7 @@ export interface UserRol {
   correo: string
   id_rol: number
   nombre_rol: string
+  id_estado: number  // 1 = Activo, 2 = Inactivo
   // Si el usuario es Profesor (id_rol === 2), trae sus categorías asignadas.
   // Para otros roles es null o undefined.
   profesor_categorias?: { id: number; nombre: string }[] | null

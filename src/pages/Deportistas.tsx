@@ -133,7 +133,7 @@ export default function Deportistas() {
       api.get("/api/catalogos/posiciones"),
       api.get("/api/catalogos/estados"),
     ])
-    const soloRol3 = personas.filter((p: any) => p.id_rol === 3)
+    const soloRol3 = personas.filter((p: any) => p.id_rol === 3 && p.id_estado === 1)
     setPersonasRol3(soloRol3)
     setOpciones({
       // ← Solo personas con rol Deportista (id_rol = 3)

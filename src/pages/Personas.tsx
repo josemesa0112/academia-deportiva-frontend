@@ -54,7 +54,16 @@ export default function Personas() {
     { key: "numero_telefono", label: "Teléfono", render: (v) => v || "—" },
     { key: "tipo_documento", label: "Tipo doc" },
     { key: "nombre_rol", label: "Rol" },
-    { key: "estado", label: "Estado" },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (_v, row: any) =>
+        row.id_estado === 1 ? (
+          <Badge className="bg-green-500/10 text-green-600 border-green-500/30">Activo</Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground">Inactivo</Badge>
+        ),
+    },
   ];
 
   const formFields: FieldDef[] = [
