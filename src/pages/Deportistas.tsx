@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, User, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 const SORT_OPTIONS = [
@@ -28,6 +29,7 @@ const clasificacionDesdeIMC = (imc: number | null) => {
 export default function Deportistas() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { userRol } = useRol();
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -67,8 +69,17 @@ export default function Deportistas() {
     );
   }, [personasPendientes, opciones.personas, form.id_persona]);
 
+  // Si el usuario es Profesor (id_rol === 2), solo ve deportistas de sus
+  // categorías asignadas. Admin ve todo. Otros roles también ven todo
+  // (esta página solo es accesible para Admin/Profesor según el sidebar).
   const filteredData = useMemo(() => {
     let result = data;
+    if (userRol?.id_rol === 2) {
+      const idsCategoriaPermitidas = new Set(
+        (userRol.profesor_categorias || []).map(c => Number(c.id))
+      );
+      result = result.filter(r => idsCategoriaPermitidas.has(Number(r.id_categoria)));
+    }
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       result = result.filter(row =>
@@ -89,7 +100,12 @@ export default function Deportistas() {
       });
     }
     return result;
-  }, [data, searchQuery, sortKey]);
+  }, [data, searchQuery, sortKey, userRol]);
+
+  // Profesor sin categorías asignadas: mostrar mensaje específico
+  const profesorSinCategorias =
+    userRol?.id_rol === 2 &&
+    (!userRol.profesor_categorias || userRol.profesor_categorias.length === 0);
 
   // Agrupa los deportistas por categoría tras aplicar búsqueda y orden
   const grouped = useMemo(() => {
@@ -295,7 +311,11 @@ export default function Deportistas() {
       ) : data.length === 0 ? (
         <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">No hay registros.</div>
       ) : filteredData.length === 0 ? (
-        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">No hay coincidencias con la búsqueda.</div>
+        <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">
+          {profesorSinCategorias
+            ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
+            : "No hay coincidencias con la búsqueda."}
+        </div>
       ) : (
         <div className="space-y-4">
           {grouped.map(([categoria, rows]) => {

@@ -52,6 +52,11 @@ interface CrudPageProps {
   pendingPersonas?: PendingPersonasConfig;
   rowActions?: (row: Record<string, any>, refresh: () => void) => React.ReactNode;
   headerActions?: (refresh: () => void) => React.ReactNode;
+  // Filtro extra aplicado antes de search/sort (ej. limitar entrenamientos
+  // a las categorías que el profesor logueado tiene a cargo).
+  dataFilter?: (row: Record<string, any>) => boolean;
+  // Mensaje cuando el filtro deja la lista vacía (sobreescribe el genérico).
+  emptyFilteredMessage?: string;
 }
 
 const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
@@ -79,6 +84,8 @@ export default function CrudPage({
   pendingPersonas,
   rowActions,
   headerActions,
+  dataFilter,
+  emptyFilteredMessage,
 }: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -105,7 +112,8 @@ export default function CrudPage({
   const editFields = formFields || fields.filter(f => !f.tableOnly);
 
   const filteredData = useMemo(() => {
-    let result = data;
+    // Pre-filtro contextual (ej. solo categorías del profesor logueado)
+    let result = dataFilter ? data.filter(dataFilter) : data;
     const q = searchQuery.trim().toLowerCase();
     if (q && searchFields && searchFields.length > 0) {
       result = result.filter(row =>
@@ -460,7 +468,7 @@ export default function CrudPage({
         </div>
       ) : filteredData.length === 0 ? (
         <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">
-          No hay coincidencias con la búsqueda.
+          {emptyFilteredMessage || "No hay coincidencias con la búsqueda."}
         </div>
       ) : groupedData ? (
         <div className="space-y-4">

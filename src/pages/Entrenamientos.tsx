@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Badge } from "@/components/ui/badge";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 // Función que determina el estado visual del entrenamiento según la fecha
@@ -20,11 +21,27 @@ const getEstadoEntrenamiento = (fecha: string, horaFin: string) => {
 }
 
 export default function Entrenamientos() {
+  const { userRol } = useRol();
   const [opciones, setOpciones] = useState({
     canchas: [],
     categorias: [],
     estados: [],
   });
+
+  // Si es Profesor (rol 2), solo ve entrenamientos de sus categorías.
+  // Admin (y otros) ven todo.
+  const idsCategoriaPermitidas = useMemo(() => {
+    if (userRol?.id_rol !== 2) return null;
+    return new Set((userRol.profesor_categorias || []).map(c => Number(c.id)));
+  }, [userRol]);
+
+  const dataFilter = idsCategoriaPermitidas
+    ? (row: Record<string, any>) => idsCategoriaPermitidas.has(Number(row.id_categoria))
+    : undefined;
+
+  const profesorSinCategorias =
+    userRol?.id_rol === 2 &&
+    (!userRol.profesor_categorias || userRol.profesor_categorias.length === 0);
 
   useEffect(() => {
     const cargarOpciones = async () => {
@@ -78,6 +95,12 @@ export default function Entrenamientos() {
         { key: "categoria", label: "Categoría (A-Z)", type: "string" },
         { key: "cancha", label: "Cancha (A-Z)", type: "string" },
       ]}
+      dataFilter={dataFilter}
+      emptyFilteredMessage={
+        profesorSinCategorias
+          ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
+          : undefined
+      }
     />
   );
 }

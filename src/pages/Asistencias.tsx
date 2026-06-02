@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Check, X, ClipboardList, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 interface AsistenciaItem {
@@ -20,6 +21,7 @@ interface AsistenciaItem {
 
 export default function Asistencias() {
   const { toast } = useToast();
+  const { userRol } = useRol();
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -153,8 +155,25 @@ export default function Asistencias() {
     setDeportistas([])
   }
 
-  // Agrupar asistencias por entrenamiento
-  const agrupadas = data.reduce((acc: any, row: any) => {
+  // Si el usuario es Profesor (rol 2), solo ve datos de sus categorías.
+  // Admin (y otros) ven todo.
+  const idsCategoriaPermitidas = userRol?.id_rol === 2
+    ? new Set((userRol.profesor_categorias || []).map(c => Number(c.id)))
+    : null
+  const profesorSinCategorias = userRol?.id_rol === 2 && (idsCategoriaPermitidas?.size === 0)
+
+  const dataFiltrada = idsCategoriaPermitidas
+    ? data.filter((row: any) => {
+        // Necesitamos saber la categoría del entrenamiento de cada asistencia.
+        // El backend ya envía row.categoria como nombre, pero no id_categoria.
+        // Lo derivamos buscando en la lista de entrenamientos cargados.
+        const entrenamiento = entrenamientos.find((e: any) => Number(e.id) === Number(row.id_entrenamiento))
+        return entrenamiento && idsCategoriaPermitidas.has(Number(entrenamiento.id_categoria))
+      })
+    : data
+
+  // Agrupar asistencias por entrenamiento (después de filtrar por rol)
+  const agrupadas = dataFiltrada.reduce((acc: any, row: any) => {
     const key = row.id_entrenamiento
     if (!acc[key]) {
       acc[key] = {
@@ -172,11 +191,14 @@ export default function Asistencias() {
   }, {})
 
   // Entrenamientos disponibles para crear asistencia: solo los que NO
-  // tienen ya un grupo de asistencias asociado (no tiene sentido duplicar).
+  // tienen ya un grupo de asistencias asociado (no tiene sentido duplicar),
+  // y para profesor solo los de sus categorías.
   const idsConAsistencia = new Set(data.map((r: any) => Number(r.id_entrenamiento)))
-  const entrenamientosDisponibles = entrenamientos.filter(
-    (e: any) => !idsConAsistencia.has(Number(e.id))
-  )
+  const entrenamientosDisponibles = entrenamientos.filter((e: any) => {
+    if (idsConAsistencia.has(Number(e.id))) return false
+    if (idsCategoriaPermitidas && !idsCategoriaPermitidas.has(Number(e.id_categoria))) return false
+    return true
+  })
 
   return (
     <div>
@@ -193,7 +215,9 @@ export default function Asistencias() {
           <div className="text-center py-8 text-muted-foreground">Cargando...</div>
         ) : Object.keys(agrupadas).length === 0 ? (
           <div className="text-center py-8 text-muted-foreground rounded-lg border bg-card">
-            No hay asistencias registradas. Haz clic en "Registrar asistencia" para comenzar.
+            {profesorSinCategorias
+              ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
+              : "No hay asistencias registradas. Haz clic en \"Registrar asistencia\" para comenzar."}
           </div>
         ) : Object.values(agrupadas).map((grupo: any) => {
           const groupKey = String(grupo.id_entrenamiento);
