@@ -58,6 +58,8 @@ interface Resumen {
     recaudo_matriculas: number;
     pendiente: number;
     cantidad_pendientes: number;
+    pendiente_matriculas: number;
+    cantidad_pendientes_matriculas: number;
     gastos: number;
     cantidad_compras: number;
     recaudo_mes_anterior: number;
@@ -144,6 +146,9 @@ export default function Dashboard() {
   const cambio = data.financiero.cambio_porcentual;
   const subio = cambio !== null && cambio >= 0;
   const hoyDia = new Date().getDate();
+  // El bloque financiero solo lo ve el Administrador (rol 1).
+  // Los demás roles solo ven la parte operativa y las listas.
+  const esAdmin = userRol?.id_rol === 1;
 
   return (
     <div className="space-y-6">
@@ -159,50 +164,59 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Bloque financiero — 4 KPI grandes */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiFinanciero
-          icon={Wallet}
-          label="Recaudo del mes"
-          value={formatMonedaFull(data.financiero.recaudo_mes)}
-          sub={`Mensualidades ${formatMoneda(data.financiero.recaudo_mensualidades)} · Matrículas ${formatMoneda(data.financiero.recaudo_matriculas)}`}
-          color="green"
-        />
-        <KpiFinanciero
-          icon={AlertCircle}
-          label="Pendiente por cobrar"
-          value={formatMonedaFull(data.financiero.pendiente)}
-          sub={`${data.financiero.cantidad_pendientes} mensualidad${data.financiero.cantidad_pendientes === 1 ? "" : "es"} sin pago`}
-          color="amber"
-        />
-        <KpiFinanciero
-          icon={ShoppingCart}
-          label="Gastos del mes"
-          value={formatMonedaFull(data.financiero.gastos)}
-          sub={`${data.financiero.cantidad_compras} compra${data.financiero.cantidad_compras === 1 ? "" : "s"} a proveedores`}
-          color="red"
-        />
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Variación vs mes anterior
-            </CardTitle>
-            {cambio === null ? null : subio ? (
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {cambio === null ? "—" : `${subio ? "+" : ""}${cambio.toFixed(1)}%`}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Mes anterior: {formatMoneda(data.financiero.recaudo_mes_anterior)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Bloque financiero — 5 KPIs grandes (solo Admin) */}
+      {esAdmin && (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <KpiFinanciero
+            icon={Wallet}
+            label="Recaudo del mes"
+            value={formatMonedaFull(data.financiero.recaudo_mes)}
+            sub={`Mensualidades ${formatMoneda(data.financiero.recaudo_mensualidades)} · Matrículas ${formatMoneda(data.financiero.recaudo_matriculas)}`}
+            color="green"
+          />
+          <KpiFinanciero
+            icon={AlertCircle}
+            label="Mensualidades pendientes"
+            value={formatMonedaFull(data.financiero.pendiente)}
+            sub={`${data.financiero.cantidad_pendientes} mensualidad${data.financiero.cantidad_pendientes === 1 ? "" : "es"} del mes sin pago`}
+            color="amber"
+          />
+          <KpiFinanciero
+            icon={AlertCircle}
+            label="Matrículas pendientes"
+            value={formatMonedaFull(data.financiero.pendiente_matriculas)}
+            sub={`${data.financiero.cantidad_pendientes_matriculas} matrícula${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} acumulada${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} sin pago`}
+            color="amber"
+          />
+          <KpiFinanciero
+            icon={ShoppingCart}
+            label="Gastos del mes"
+            value={formatMonedaFull(data.financiero.gastos)}
+            sub={`${data.financiero.cantidad_compras} compra${data.financiero.cantidad_compras === 1 ? "" : "s"} a proveedores`}
+            color="red"
+          />
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Variación vs mes anterior
+              </CardTitle>
+              {cambio === null ? null : subio ? (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {cambio === null ? "—" : `${subio ? "+" : ""}${cambio.toFixed(1)}%`}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Mes anterior: {formatMoneda(data.financiero.recaudo_mes_anterior)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Bloque KPIs operativos — 4 chicos */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
@@ -218,24 +232,28 @@ export default function Dashboard() {
 
       {/* Gráficas */}
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Recaudación últimos 6 meses</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={datosHistoricos}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
-                <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatMoneda(v)} />
-                <Tooltip formatter={(v: number) => [formatMonedaFull(v), "Recaudo"]} />
-                <Bar dataKey="total" fill="hsl(152, 60%, 28%)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Recaudación histórica — solo Admin */}
+        {esAdmin && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Recaudación últimos 6 meses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={datosHistoricos}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatMoneda(v)} />
+                  <Tooltip formatter={(v: number) => [formatMonedaFull(v), "Recaudo"]} />
+                  <Bar dataKey="total" fill="hsl(152, 60%, 28%)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
+        {/* Donut de categorías: ocupa todo el ancho si no hay gráfica histórica */}
+        <Card className={esAdmin ? "" : "lg:col-span-3"}>
           <CardHeader>
             <CardTitle className="text-base">Deportistas por categoría</CardTitle>
           </CardHeader>
