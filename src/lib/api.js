@@ -1,9 +1,22 @@
 const API_URL = 'https://academia-deportiva-api-24zm.onrender.com'
 
+// Intenta leer el mensaje de error del cuerpo de la respuesta, con fallback al status.
+const parseError = async (res) => {
+  try {
+    const body = await res.json()
+    if (body?.errors?.length > 0) {
+      return body.errors.map((e) => e.mensaje || e.msg || JSON.stringify(e)).join('\n')
+    }
+    return body?.error || `Error ${res.status}`
+  } catch {
+    return `Error ${res.status}`
+  }
+}
+
 const api = {
   get: async (endpoint) => {
     const res = await fetch(`${API_URL}${endpoint}`)
-    if (!res.ok) throw new Error(`Error ${res.status}`)
+    if (!res.ok) throw new Error(await parseError(res))
     return res.json()
   },
 
@@ -44,7 +57,7 @@ const api = {
     const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'DELETE'
     })
-    if (!res.ok) throw new Error(`Error ${res.status}`)
+    if (!res.ok) throw new Error(await parseError(res))
     return res.json()
   }
 }
