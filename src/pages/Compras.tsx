@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,12 +8,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Trash2, PlusCircle, MinusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 interface LineItem { id_producto: string; cantidad_productos: string; precio: string; }
 
 export default function Compras() {
   const { toast } = useToast();
+  const { userRol } = useRol();
+
+  // Defensa: Proveedor no debe tener acceso a esta sección.
+  if (userRol?.id_rol === 4) {
+    return <Navigate to="/" replace />;
+  }
+
   const [data, setData] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);

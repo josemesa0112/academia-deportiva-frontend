@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -8,6 +9,7 @@ import {
 } from "recharts";
 import { TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 import api from "@/lib/api";
 
 interface PrecioHistorico {
@@ -34,6 +36,13 @@ const formatMoneda = (v: any) =>
 
 export default function Productos() {
   const { toast } = useToast();
+  const { userRol } = useRol();
+
+  // Defensa: Proveedor no debe tener acceso a esta sección.
+  if (userRol?.id_rol === 4) {
+    return <Navigate to="/" replace />;
+  }
+
   const [opciones, setOpciones] = useState({
     tiposProducto: [],
     variantesProducto: [],
