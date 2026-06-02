@@ -13,7 +13,7 @@ import {
 
 const todosLosItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
-  { title: "Mi Perfil", url: "/mi-perfil", icon: User, roles: [3] },
+  { title: "Mi Perfil", url: "/mi-perfil", icon: User, roles: [2, 3] },
   { title: "Personas", url: "/personas", icon: Users, roles: [1] },
   { title: "Profesores", url: "/profesores", icon: GraduationCap, roles: [1] },
   { title: "Deportistas", url: "/deportistas", icon: Dumbbell, roles: [1, 2] },

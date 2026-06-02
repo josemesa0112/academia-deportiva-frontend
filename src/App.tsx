@@ -11,6 +11,7 @@ import Personas from "@/pages/Personas";
 import Profesores from "@/pages/Profesores";
 import Deportistas from "@/pages/Deportistas";
 import PerfilDeportista from "@/pages/PerfilDeportista";
+import PerfilProfesor from "@/pages/PerfilProfesor";
 import MiPerfil from "@/pages/MiPerfil";
 import Proveedores from "@/pages/Proveedores";
 import Productos from "@/pages/Productos";
@@ -64,6 +65,7 @@ const App = () => {
               <Route path="/" element={<Dashboard />} />
               <Route path="/personas" element={<Personas />} />
               <Route path="/profesores" element={<Profesores />} />
+              <Route path="/profesores/:id" element={<PerfilProfesor />} />
               <Route path="/deportistas" element={<Deportistas />} />
               <Route path="/deportistas/:id" element={<PerfilDeportista />} />
               <Route path="/mi-perfil" element={<MiPerfil />} />
