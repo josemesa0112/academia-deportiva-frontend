@@ -7,7 +7,7 @@ export default function Login() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://academia-deportiva-frontend-b8dj.vercel.app'
+        redirectTo: '${window.location.origin}/auth/callback'
       }
     })
   }

@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button"; // Botón de tu diseño UI (Shadcn)
+import { Download } from "lucide-react"; // Ícono opcional
 import api from "@/lib/api";
+import * as XLSX from "xlsx"; // 1. Import de xlsx
 
 // ID del rol Proveedor — usado para decidir si se permite marcar como empresa.
 const ROL_PROVEEDOR = "4";
@@ -31,6 +34,44 @@ export default function Personas() {
     };
     cargarOpciones();
   }, []);
+
+  // 2. Función para descargar en formato Excel
+  const handleExportarExcel = async () => {
+    try {
+      // Pedimos las personas a la API
+      const personas = await api.get("/api/personas");
+
+      if (!personas || personas.length === 0) {
+        alert("No hay personas registradas para exportar.");
+        return;
+      }
+
+      // Mapeamos los datos con los encabezados limpios
+      const datosExcel = personas.map((p: any) => ({
+        Tipo: p.es_empresa ? "Empresa" : "Persona",
+        "Nombre / Razón social": p.nombre,
+        Apellido: p.apellido || "—",
+        Documento: p.numero_documento || "—",
+        "Tipo Documento": p.tipo_documento || "—",
+        Correo: p.correo || "—",
+        Teléfono: p.numero_telefono || "—",
+        Rol: p.nombre_rol || "—",
+        Estado: p.id_estado === 1 ? "Activo" : "Inactivo",
+      }));
+
+      // Creamos la hoja de cálculo
+      const worksheet = XLSX.utils.json_to_sheet(datosExcel);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Personas");
+
+      // Descargamos el archivo con fecha
+      const fecha = new Date().toISOString().split("T")[0];
+      XLSX.writeFile(workbook, `Reporte_Personas_${fecha}.xlsx`);
+    } catch (error) {
+      console.error("Error al exportar:", error);
+      alert("Ocurrió un error al generar el archivo Excel.");
+    }
+  };
 
   // Helpers de visibilidad: usados por showIf en cada campo
   const esEmpresa = (form: Record<string, string>) =>
@@ -68,7 +109,6 @@ export default function Personas() {
 
   const formFields: FieldDef[] = [
     { key: "id_rol", label: "Rol", type: "select", options: opciones.roles },
-    // El toggle "Es empresa" solo aparece cuando el rol seleccionado es Proveedor
     {
       key: "es_empresa",
       label: "Es empresa (persona jurídica)",
@@ -121,6 +161,17 @@ export default function Personas() {
         { key: "nombre_rol", label: "Rol (A-Z)", type: "string" },
         { key: "fecha_nacimiento", label: "Fecha de nacimiento", type: "date" },
       ]}
+      // 3. Pasamos el botón a través de headerActions
+      headerActions={() => (
+        <Button
+          onClick={handleExportarExcel}
+          variant="outline"
+          className="gap-2 border-green-600/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+        >
+          <Download className="h-4 w-4" />
+          Exportar Excel
+        </Button>
+      )}
     />
   );
 }

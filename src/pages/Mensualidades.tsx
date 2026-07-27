@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeDollarSign, CalendarPlus, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRol } from "@/hooks/useRol";
+import { exportToExcel } from "@/lib/exportExcel"; // La función que creaste en el paso 1
 import api from "@/lib/api";
 
 const meses = [
@@ -138,6 +140,33 @@ export default function Mensualidades() {
     { key: "id_estado", label: "Estado del registro", type: "select", options: opciones.estados },
   ];
 
+  const handleExportarMensualidades = async () => {
+  try {
+    // A. Pedir los datos al endpoint correspondiente
+    const mensualidades = await api.get("/api/mensualidades"); 
+
+    // B. Mapear los campos de la API a nombres bonitos para la tabla de Excel
+    const datosFormateados = mensualidades.map((m: any) => ({
+      "Nombre": m.nombre || "—",
+      "Apellido": m.apellido || "—",
+      "Documento": m.numero_documento || "—",
+      "Valor": m.valor ? `$${parseInt(m.valor).toLocaleString()}` : "—",
+      "Pago": m.fecha_pago 
+        ? `Pagada · ${formatFechaPago(m.fecha_pago)}` 
+        : "Pendiente",
+    }));
+
+    // C. Disparar la descarga
+    exportToExcel({
+      data: datosFormateados,
+      fileName: "Reporte_Mensualidades",
+      sheetName: "Mensualidades"
+    });
+  } catch (error) {
+    console.error("Error al exportar:", error);
+  }
+};
+
   return (
     <CrudPage
       title={tituloPagina}
@@ -154,9 +183,20 @@ export default function Mensualidades() {
       groupBy="categoria"
       groupEmptyLabel="Sin categoría"
       headerActions={(refresh) => (
-        <Button variant="outline" className="gap-2" onClick={() => handleGenerarMes(refresh)}>
-          <CalendarPlus className="h-4 w-4" /> Generar mes
-        </Button>
+        <>
+          {/* Botón de Exportar a Excel */}
+          <Button
+            variant="outline"
+            className="gap-2 border-green-600/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+            onClick={handleExportarMensualidades}
+          >
+            <Download className="h-4 w-4" /> Exportar Excel
+          </Button>
+          {/* Botón existente de Generar mes */}
+          <Button variant="outline" className="gap-2" onClick={() => handleGenerarMes(refresh)}>
+            <CalendarPlus className="h-4 w-4" /> Generar mes
+          </Button>
+        </>
       )}
       rowActions={(row, refresh) =>
         !row.fecha_pago ? (
@@ -177,6 +217,7 @@ export default function Mensualidades() {
           >
             <Undo2 className="h-4 w-4" /> Revertir
           </Button>
+          
         )
       }
     />
