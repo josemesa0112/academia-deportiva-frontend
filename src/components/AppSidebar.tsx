@@ -11,20 +11,40 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 
-const todosLosItems = [
+// Items sin sección: van pegados al header, sin etiqueta propia.
+const itemsPrincipales = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
   { title: "Mi Perfil", url: "/mi-perfil", icon: User, roles: [2, 3] },
-  { title: "Personas", url: "/personas", icon: Users, roles: [1] },
-  { title: "Profesores", url: "/profesores", icon: GraduationCap, roles: [1] },
-  { title: "Deportistas", url: "/deportistas", icon: Dumbbell, roles: [1, 2] },
-  { title: "Proveedores", url: "/proveedores", icon: Truck, roles: [1] },
-  { title: "Productos", url: "/productos", icon: Package, roles: [1] },
-  { title: "Compras", url: "/compras", icon: ShoppingCart, roles: [1] },
-  { title: "Canchas", url: "/canchas", icon: MapPin, roles: [1, 2] },
-  { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar, roles: [1, 2, 3] },
-  { title: "Asistencias", url: "/asistencias", icon: ClipboardCheck, roles: [1, 2, 3] },
-  { title: "Matrículas", url: "/matriculas", icon: FileText, roles: [1] },
-  { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1] },
+];
+
+// El resto se agrupa por área del negocio para que el menú no sea una lista plana.
+const secciones = [
+  {
+    label: "Gestión",
+    items: [
+      { title: "Personas", url: "/personas", icon: Users, roles: [1] },
+      { title: "Profesores", url: "/profesores", icon: GraduationCap, roles: [1] },
+      { title: "Deportistas", url: "/deportistas", icon: Dumbbell, roles: [1, 2] },
+    ],
+  },
+  {
+    label: "Comercial",
+    items: [
+      { title: "Proveedores", url: "/proveedores", icon: Truck, roles: [1] },
+      { title: "Productos", url: "/productos", icon: Package, roles: [1] },
+      { title: "Compras", url: "/compras", icon: ShoppingCart, roles: [1] },
+      { title: "Matrículas", url: "/matriculas", icon: FileText, roles: [1] },
+      { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1] },
+    ],
+  },
+  {
+    label: "Deportiva",
+    items: [
+      { title: "Canchas", url: "/canchas", icon: MapPin, roles: [1, 2] },
+      { title: "Entrenamientos", url: "/entrenamientos", icon: Calendar, roles: [1, 2, 3] },
+      { title: "Asistencias", url: "/asistencias", icon: ClipboardCheck, roles: [1, 2, 3] },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -39,15 +59,37 @@ export function AppSidebar() {
   };
 
   // Filtrar items según el rol del usuario
-  const itemsFiltrados = todosLosItems.filter(item => {
+  const filtrarPorRol = (items: typeof itemsPrincipales) => items.filter(item => {
     if (!userRol) return item.title === "Dashboard"
     return item.roles.includes(userRol.id_rol)
   })
 
+  const principalesFiltrados = filtrarPorRol(itemsPrincipales)
+  // Las secciones que quedan sin items para este rol no se renderizan.
+  const seccionesFiltradas = secciones
+    .map(seccion => ({ ...seccion, items: filtrarPorRol(seccion.items) }))
+    .filter(seccion => seccion.items.length > 0)
+
+  const renderItem = (item: typeof itemsPrincipales[number]) => (
+    <SidebarMenuItem key={item.title}>
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={item.url}
+          end={item.url === "/"}
+          className="hover:bg-sidebar-accent/80 transition-colors"
+          activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
+        >
+          <item.icon className="mr-2 h-4 w-4 shrink-0" />
+          {!collapsed && <span>{item.title}</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  )
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="flex flex-col h-full">
-        <SidebarGroup className="flex-1">
+        <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-primary font-bold text-xs tracking-widest uppercase">
             {!collapsed && "Estrellas del Milenio"}
           </SidebarGroupLabel>
@@ -62,27 +104,26 @@ export function AppSidebar() {
                   <p className="text-xs text-muted-foreground">{userRol.nombre_rol}</p>
                 </div>
               )}
-              {itemsFiltrados.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="hover:bg-sidebar-accent/80 transition-colors"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
-                    >
-                      <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {principalesFiltrados.map(renderItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {seccionesFiltradas.map((seccion) => (
+          <SidebarGroup key={seccion.label} className="py-0">
+            <SidebarGroupLabel className="text-muted-foreground font-semibold text-[10px] tracking-wider uppercase">
+              {!collapsed && seccion.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {seccion.items.map(renderItem)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+
         {/* Botón cerrar sesión */}
-        <SidebarGroup>
+        <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
