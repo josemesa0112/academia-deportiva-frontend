@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variables de entorno: nunca al repo. El build de produccion las lee,
+# asi que un .env commiteado sobreescribe la configuracion de Vercel.
+.env
+.env.*
+!.env.example
