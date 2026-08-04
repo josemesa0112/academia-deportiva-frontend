@@ -83,7 +83,7 @@ export default function Personas() {
       label: "Tipo",
       render: (_v, row: any) =>
         row.es_empresa ? (
-          <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/30">Empresa</Badge>
+          <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/30">Empresa</Badge>
         ) : (
           <Badge variant="outline">Persona</Badge>
         ),
@@ -100,7 +100,7 @@ export default function Personas() {
       label: "Estado",
       render: (_v, row: any) =>
         row.id_estado === 1 ? (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/30">Activo</Badge>
+          <Badge className="bg-green-500/10 text-green-400 border-green-500/30">Activo</Badge>
         ) : (
           <Badge variant="outline" className="text-muted-foreground">Inactivo</Badge>
         ),
@@ -166,7 +166,7 @@ export default function Personas() {
         <Button
           onClick={handleExportarExcel}
           variant="outline"
-          className="gap-2 border-green-600/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+          className="gap-2 border-green-600/30 text-green-400 hover:bg-green-500/10 hover:text-green-400"
         >
           <Download className="h-4 w-4" />
           Exportar Excel

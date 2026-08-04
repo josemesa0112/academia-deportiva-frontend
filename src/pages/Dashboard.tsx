@@ -43,11 +43,11 @@ const saludo = () => {
 
 // Paleta para la dona de categorías
 const COLORES_CATEGORIA = [
-  "hsl(152, 60%, 35%)",
-  "hsl(152, 60%, 45%)",
-  "hsl(152, 60%, 55%)",
-  "hsl(152, 50%, 65%)",
-  "hsl(152, 40%, 75%)",
+  "hsl(213 90% 58%)",
+  "hsl(45 96% 58%)",
+  "hsl(190 85% 55%)",
+  "hsl(265 70% 68%)",
+  "hsl(160 60% 55%)",
 ];
 
 interface Resumen {
@@ -155,7 +155,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-2xl font-bold text-title">
             {saludo()}{userRol ? `, ${userRol.nombre}` : ""}
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -201,7 +201,7 @@ export default function Dashboard() {
                 Variación vs mes anterior
               </CardTitle>
               {cambio === null ? null : subio ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 text-green-400" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-500" />
               )}
@@ -242,11 +242,11 @@ export default function Dashboard() {
             <CardContent>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={datosHistoricos}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 30% 23%)" />
                   <XAxis dataKey="label" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => formatMoneda(v)} />
                   <Tooltip formatter={(v: number) => [formatMonedaFull(v), "Recaudo"]} />
-                  <Bar dataKey="total" fill="hsl(152, 60%, 28%)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="total" fill="hsl(213 90% 58%)" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -402,8 +402,8 @@ function KpiFinanciero({
   color: "green" | "amber" | "red";
 }) {
   const colorMap = {
-    green: { bg: "bg-green-500/10", text: "text-green-600", border: "border-green-500/20" },
-    amber: { bg: "bg-amber-500/10", text: "text-amber-600", border: "border-amber-500/20" },
+    green: { bg: "bg-green-500/10", text: "text-green-400", border: "border-green-500/20" },
+    amber: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
     red:   { bg: "bg-red-500/10",   text: "text-red-500",   border: "border-red-500/20" },
   };
   const c = colorMap[color];

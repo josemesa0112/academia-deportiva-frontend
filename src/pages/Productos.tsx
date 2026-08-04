@@ -40,7 +40,7 @@ export default function Productos() {
 
   // Defensa: Proveedor no debe tener acceso a esta sección.
   if (userRol?.id_rol === 4) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const [opciones, setOpciones] = useState({
@@ -149,7 +149,7 @@ export default function Productos() {
                 <div className="rounded-lg border bg-card p-3">
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={datosGrafica}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 30% 23%)" />
                       <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                       <YAxis
                         tick={{ fontSize: 11 }}
@@ -159,7 +159,7 @@ export default function Productos() {
                       <Line
                         type="monotone"
                         dataKey="precio"
-                        stroke="hsl(152, 60%, 28%)"
+                        stroke="hsl(213 90% 58%)"
                         strokeWidth={2}
                         dot={{ r: 4 }}
                       />
@@ -193,7 +193,7 @@ export default function Productos() {
                             ) : diff === 0 ? (
                               <span className="text-xs text-muted-foreground">Sin cambio</span>
                             ) : diff > 0 ? (
-                              <span className="text-xs text-green-600">▲ +${diff.toLocaleString()}</span>
+                              <span className="text-xs text-green-400">▲ +${diff.toLocaleString()}</span>
                             ) : (
                               <span className="text-xs text-red-500">▼ −${Math.abs(diff).toLocaleString()}</span>
                             )}

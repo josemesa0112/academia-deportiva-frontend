@@ -13,7 +13,7 @@ import {
 
 // Items sin sección: van pegados al header, sin etiqueta propia.
 const itemsPrincipales = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, roles: [1, 2, 3, 4] },
   { title: "Mi Perfil", url: "/mi-perfil", icon: User, roles: [2, 3] },
 ];
 
@@ -73,9 +73,9 @@ export function AppSidebar() {
   const renderItem = (item: typeof itemsPrincipales[number]) => (
     <SidebarMenuItem key={item.title}>
       <SidebarMenuButton asChild>
+        {/* Sin `end`: /deportistas sigue marcado al abrir /deportistas/:id */}
         <NavLink
           to={item.url}
-          end={item.url === "/"}
           className="hover:bg-sidebar-accent/80 transition-colors"
           activeClassName="bg-sidebar-accent text-sidebar-primary font-semibold"
         >

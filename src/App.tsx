@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/lib/supabase";
 import AppLayout from "@/components/AppLayout";
+import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Personas from "@/pages/Personas";
@@ -54,15 +55,17 @@ const App = () => {
         <Toaster />
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={
-              session ? <Navigate to="/" replace /> : <Login />
-            } />
+            {/* Página pública: es lo primero que ve quien entra al sitio */}
+            <Route path="/" element={<Landing />} />
+            {/* Login decide cuándo salir: tras el primer ingreso se queda para
+                obligar a definir la contraseña propia. */}
+            <Route path="/login" element={<Login session={session} />} />
             <Route element={
               <ProtectedRoute session={session}>
                 <AppLayout />
               </ProtectedRoute>
             }>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/personas" element={<Personas />} />
               <Route path="/profesores" element={<Profesores />} />
               <Route path="/profesores/:id" element={<PerfilProfesor />} />

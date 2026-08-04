@@ -136,7 +136,7 @@ export default function PerfilProfesor() {
             {iniciales(profesor.nombre, profesor.apellido)}
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold">{profesor.nombre} {profesor.apellido}</h2>
+            <h2 className="text-2xl font-bold text-title">{profesor.nombre} {profesor.apellido}</h2>
             <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mt-1">
               {profesor.numero_documento && (
                 <span className="inline-flex items-center gap-1"><IdCard className="h-3 w-3" />{profesor.numero_documento}</span>

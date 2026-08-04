@@ -19,7 +19,7 @@ export default function Compras() {
 
   // Defensa: Proveedor no debe tener acceso a esta sección.
   if (userRol?.id_rol === 4) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -188,7 +188,7 @@ export default function Compras() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Compras</h2>
+        <h2 className="text-2xl font-bold text-title">Compras</h2>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nueva</Button>
       </div>
 
@@ -280,7 +280,7 @@ export default function Compras() {
                   Selecciona un proveedor para ver sus productos disponibles.
                 </div>
               ) : productosDelProveedor.length === 0 ? (
-                <div className="rounded-md border bg-amber-500/5 border-amber-500/30 px-3 py-3 text-sm text-amber-700 dark:text-amber-500">
+                <div className="rounded-md border bg-amber-500/5 border-amber-500/30 px-3 py-3 text-sm text-amber-400 dark:text-amber-500">
                   Este proveedor aún no tiene productos asignados. Edítalo en la sección{" "}
                   <span className="font-medium">Proveedores</span> para agregar los productos que vende.
                 </div>

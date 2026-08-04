@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Amarillo de marca para títulos (text-title).
+        title: "hsl(var(--title))",
+        // Superficies oscuras de marca (hero, login, pantallas completas).
+        brand: {
+          deep: "hsl(var(--brand-deep))",
+          surface: "hsl(var(--brand-surface))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

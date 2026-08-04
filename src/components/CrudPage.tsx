@@ -388,7 +388,7 @@ export default function CrudPage({
   return (
     <div>
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
-        <h2 className="text-2xl font-bold">{title}</h2>
+        <h2 className="text-2xl font-bold text-title">{title}</h2>
         <div className="flex items-center gap-2 flex-wrap">
           {headerActions && headerActions(fetchData)}
           {canCreate && (
@@ -402,7 +402,7 @@ export default function CrudPage({
       {pendingPersonas && personasPendientes.length > 0 && (
         <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertCircle className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold">
               {personasPendientes.length}{" "}
               {personasPendientes.length === 1 ? "persona pendiente" : "personas pendientes"} de completar

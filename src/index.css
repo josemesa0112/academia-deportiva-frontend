@@ -5,51 +5,61 @@
 @tailwind utilities;
 
 @layer base {
+  /* Identidad: superficies azul oscuro, títulos y acentos en amarillo. */
   :root {
-    --background: 150 10% 97%;
-    --foreground: 150 20% 8%;
+    --background: 218 45% 10%;
+    --foreground: 210 25% 94%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 150 20% 8%;
+    --card: 218 40% 14%;
+    --card-foreground: 210 25% 94%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 150 20% 8%;
+    --popover: 218 42% 13%;
+    --popover-foreground: 210 25% 94%;
 
-    --primary: 152 60% 28%;
+    --primary: 213 90% 54%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 150 8% 92%;
-    --secondary-foreground: 150 20% 15%;
+    --secondary: 218 35% 17%;
+    --secondary-foreground: 210 25% 92%;
 
-    --muted: 150 8% 94%;
-    --muted-foreground: 150 8% 45%;
+    --muted: 218 32% 19%;
+    --muted-foreground: 214 16% 68%;
 
-    --accent: 152 50% 22%;
-    --accent-foreground: 0 0% 100%;
+    /* shadcn usa --accent como fondo de hover (menús, botones ghost), no como
+       color de marca. Se mantiene azul discreto; el amarillo vive en --title. */
+    --accent: 218 35% 21%;
+    --accent-foreground: 210 25% 94%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 10% 88%;
-    --input: 150 10% 88%;
-    --ring: 152 60% 28%;
+    --border: 218 30% 23%;
+    --input: 218 30% 23%;
+    --ring: 213 90% 54%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 150 20% 8%;
-    --sidebar-foreground: 150 10% 85%;
-    --sidebar-primary: 152 60% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 15% 14%;
-    --sidebar-accent-foreground: 150 10% 90%;
-    --sidebar-border: 150 15% 16%;
-    --sidebar-ring: 152 60% 45%;
+    /* Color de los títulos de sección y de página. */
+    --title: 45 96% 58%;
 
-    --success: 152 60% 40%;
+    /* Superficies de marca para hero, login y pantallas a pantalla completa. */
+    --brand-deep: 220 55% 7%;
+    --brand-surface: 218 42% 12%;
+
+    --sidebar-background: 220 50% 7%;
+    --sidebar-foreground: 210 20% 84%;
+    --sidebar-primary: 45 96% 58%;
+    --sidebar-primary-foreground: 220 50% 7%;
+    --sidebar-accent: 218 40% 15%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 218 35% 18%;
+    --sidebar-ring: 45 96% 58%;
+
+    --success: 152 55% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --info: 210 80% 52%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 218 45% 10%;
+    --info: 210 85% 58%;
     --info-foreground: 0 0% 100%;
   }
 }

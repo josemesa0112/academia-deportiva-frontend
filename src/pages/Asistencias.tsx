@@ -214,7 +214,7 @@ export default function Asistencias() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Asistencias</h2>
+        <h2 className="text-2xl font-bold text-title">Asistencias</h2>
         {puedeRegistrarAsistencia && (
           <Button onClick={() => { setModoEdicion(false); setOpen(true) }} className="gap-2">
             <Plus className="h-4 w-4" /> Registrar asistencia

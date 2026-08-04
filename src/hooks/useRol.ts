@@ -22,20 +22,30 @@ export interface UserRol {
   deportista_info?: { id: number; id_categoria: number; categoria: string } | null
 }
 
+/**
+ * Resultado de resolver la persona a partir del correo de la sesión.
+ * Se distingue "no registrado" (404) de un fallo de red para no expulsar
+ * a nadie por una caída momentánea del backend.
+ */
+export type EstadoRol = 'cargando' | 'sin-sesion' | 'registrado' | 'no-registrado' | 'error'
+
 export function useRol() {
   const [userRol, setUserRol] = useState<UserRol | null>(null)
   const [loading, setLoading] = useState(true)
+  const [estado, setEstado] = useState<EstadoRol>('cargando')
 
   useEffect(() => {
     const obtenerRol = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user?.email) { setLoading(false); return }
+        if (!session?.user?.email) { setEstado('sin-sesion'); setLoading(false); return }
 
         const persona = await api.get(`/api/personas/correo/${session.user.email}`)
         setUserRol(persona)
-      } catch {
+        setEstado('registrado')
+      } catch (err: any) {
         setUserRol(null)
+        setEstado(err?.status === 404 ? 'no-registrado' : 'error')
       } finally {
         setLoading(false)
       }
@@ -48,5 +58,5 @@ export function useRol() {
   const esDeportista = () => userRol?.id_rol === 3
   const esProveedor = () => userRol?.id_rol === 4
 
-  return { userRol, loading, esAdmin, esProfesor, esDeportista, esProveedor }
+  return { userRol, loading, estado, esAdmin, esProfesor, esDeportista, esProveedor }
 }

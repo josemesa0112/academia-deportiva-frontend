@@ -18,11 +18,20 @@ const SORT_OPTIONS = [
   { key: "apellido", label: "Apellido (A-Z)" },
 ] as const;
 
+// Valor centinela del filtro de categoría cuando no hay ninguna seleccionada.
+const TODAS = "__todas__";
+
+const SIN_CATEGORIA = "Sin categoría";
+
+// Los deportistas sin categoría se agrupan bajo una etiqueta propia.
+const nombreCategoria = (row: Record<string, any>) =>
+  row.categoria && String(row.categoria).trim() !== "" ? String(row.categoria) : SIN_CATEGORIA;
+
 // Criterios OMS: < 18.5 Bajo en grasa, 18.5-24.9 Saludable, ≥ 25 Sobrepeso
 const clasificacionDesdeIMC = (imc: number | null) => {
   if (imc === null || Number.isNaN(imc)) return null;
-  if (imc < 18.5) return { label: "Bajo en grasa", className: "bg-amber-500/10 text-amber-600 border-amber-500/30" };
-  if (imc < 25) return { label: "Saludable", className: "bg-green-500/10 text-green-600 border-green-500/30" };
+  if (imc < 18.5) return { label: "Bajo en grasa", className: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
+  if (imc < 25) return { label: "Saludable", className: "bg-green-500/10 text-green-400 border-green-500/30" };
   return { label: "Sobrepeso", className: "bg-red-500/10 text-red-500 border-red-500/30" };
 };
 
@@ -37,6 +46,7 @@ export default function Deportistas() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>(TODAS);
   const [personasRol3, setPersonasRol3] = useState<Record<string, any>[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -72,13 +82,35 @@ export default function Deportistas() {
   // Si el usuario es Profesor (id_rol === 2), solo ve deportistas de sus
   // categorías asignadas. Admin ve todo. Otros roles también ven todo
   // (esta página solo es accesible para Admin/Profesor según el sidebar).
+  const dataVisible = useMemo(() => {
+    if (userRol?.id_rol !== 2) return data;
+    const idsCategoriaPermitidas = new Set(
+      (userRol.profesor_categorias || []).map(c => Number(c.id))
+    );
+    return data.filter(r => idsCategoriaPermitidas.has(Number(r.id_categoria)));
+  }, [data, userRol]);
+
+  // Botones de categoría: solo las que tienen deportistas visibles para este
+  // usuario, ordenadas por id (Sub 6, 8, 10… — alfabéticamente quedarían mal).
+  const categoriasDisponibles = useMemo(() => {
+    const map = new Map<string, { label: string; orden: number; count: number }>();
+    for (const row of dataVisible) {
+      const label = nombreCategoria(row);
+      const existente = map.get(label);
+      if (existente) {
+        existente.count++;
+      } else {
+        const orden = Number(row.id_categoria);
+        map.set(label, { label, orden: Number.isNaN(orden) ? Infinity : orden, count: 1 });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.orden - b.orden);
+  }, [dataVisible]);
+
   const filteredData = useMemo(() => {
-    let result = data;
-    if (userRol?.id_rol === 2) {
-      const idsCategoriaPermitidas = new Set(
-        (userRol.profesor_categorias || []).map(c => Number(c.id))
-      );
-      result = result.filter(r => idsCategoriaPermitidas.has(Number(r.id_categoria)));
+    let result = dataVisible;
+    if (categoriaFiltro !== TODAS) {
+      result = result.filter(r => nombreCategoria(r) === categoriaFiltro);
     }
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -100,26 +132,35 @@ export default function Deportistas() {
       });
     }
     return result;
-  }, [data, searchQuery, sortKey, userRol]);
+  }, [dataVisible, categoriaFiltro, searchQuery, sortKey]);
+
+  // Si la categoría seleccionada deja de existir (recarga, cambio de rol),
+  // volver a "Todas" para no dejar la tabla vacía sin explicación.
+  useEffect(() => {
+    if (categoriaFiltro === TODAS) return;
+    if (!categoriasDisponibles.some(c => c.label === categoriaFiltro)) {
+      setCategoriaFiltro(TODAS);
+    }
+  }, [categoriasDisponibles, categoriaFiltro]);
 
   // Profesor sin categorías asignadas: mostrar mensaje específico
   const profesorSinCategorias =
     userRol?.id_rol === 2 &&
     (!userRol.profesor_categorias || userRol.profesor_categorias.length === 0);
 
-  // Agrupa los deportistas por categoría tras aplicar búsqueda y orden
+  // Agrupa los deportistas por categoría tras aplicar búsqueda y orden.
+  // Se respeta el orden de los botones (por id) en vez del alfabético.
   const grouped = useMemo(() => {
     const map = new Map<string, Record<string, any>[]>();
     for (const row of filteredData) {
-      const key = row.categoria && String(row.categoria).trim() !== ""
-        ? String(row.categoria)
-        : "Sin categoría";
+      const key = nombreCategoria(row);
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(row);
     }
+    const orden = categoriasDisponibles.map(c => c.label);
     return Array.from(map.entries())
-      .sort(([a], [b]) => a.localeCompare(b, "es", { sensitivity: "base" }));
-  }, [filteredData]);
+      .sort(([a], [b]) => orden.indexOf(a) - orden.indexOf(b));
+  }, [filteredData, categoriasDisponibles]);
 
   useEffect(() => {
     cargarOpciones()
@@ -245,14 +286,14 @@ export default function Deportistas() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Deportistas</h2>
+        <h2 className="text-2xl font-bold text-title">Deportistas</h2>
         <Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Nuevo</Button>
       </div>
 
       {personasPendientes.length > 0 && (
         <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertCircle className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold">
               {personasPendientes.length}{" "}
               {personasPendientes.length === 1 ? "persona pendiente" : "personas pendientes"} de completar como deportista
@@ -305,6 +346,42 @@ export default function Deportistas() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* Filtro por categoría: muestra una sola categoría a la vez */}
+      {categoriasDisponibles.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            variant={categoriaFiltro === TODAS ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            aria-pressed={categoriaFiltro === TODAS}
+            onClick={() => setCategoriaFiltro(TODAS)}
+          >
+            Todas
+            <span className="rounded-full bg-background/20 px-1.5 text-xs font-normal">
+              {dataVisible.length}
+            </span>
+          </Button>
+          {categoriasDisponibles.map(c => {
+            const activa = categoriaFiltro === c.label;
+            return (
+              <Button
+                key={c.label}
+                variant={activa ? "default" : "outline"}
+                size="sm"
+                className="gap-2"
+                aria-pressed={activa}
+                onClick={() => setCategoriaFiltro(activa ? TODAS : c.label)}
+              >
+                {c.label}
+                <span className={`rounded-full px-1.5 text-xs font-normal ${activa ? "bg-background/20" : "bg-muted"}`}>
+                  {c.count}
+                </span>
+              </Button>
+            );
+          })}
+        </div>
+      )}
 
       {loading ? (
         <div className="rounded-lg border bg-card py-8 text-center text-muted-foreground">Cargando...</div>

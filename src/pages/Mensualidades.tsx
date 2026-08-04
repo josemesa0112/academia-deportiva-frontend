@@ -121,11 +121,11 @@ export default function Mensualidades() {
       label: "Pago",
       render: (v) =>
         v ? (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/30">
+          <Badge className="bg-green-500/10 text-green-400 border-green-500/30">
             Pagada · {formatFechaPago(v)}
           </Badge>
         ) : (
-          <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30">
             Pendiente
           </Badge>
         ),
@@ -187,7 +187,7 @@ export default function Mensualidades() {
           {/* Botón de Exportar a Excel */}
           <Button
             variant="outline"
-            className="gap-2 border-green-600/30 text-green-600 hover:bg-green-500/10 hover:text-green-700"
+            className="gap-2 border-green-600/30 text-green-400 hover:bg-green-500/10 hover:text-green-400"
             onClick={handleExportarMensualidades}
           >
             <Download className="h-4 w-4" /> Exportar Excel
@@ -203,7 +203,7 @@ export default function Mensualidades() {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+            className="gap-1 text-green-400 hover:text-green-400 hover:bg-green-500/10"
             onClick={() => handlePagar(String(row.id), refresh)}
           >
             <BadgeDollarSign className="h-4 w-4" /> Pagar
@@ -212,7 +212,7 @@ export default function Mensualidades() {
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+            className="gap-1 text-amber-400 hover:text-amber-400 hover:bg-amber-500/10"
             onClick={() => handleRevertir(String(row.id), refresh)}
           >
             <Undo2 className="h-4 w-4" /> Revertir

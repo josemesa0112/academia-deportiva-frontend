@@ -26,7 +26,7 @@ export default function MiPerfil() {
   }
 
   return (
-    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6 text-sm text-amber-700 dark:text-amber-500">
+    <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-6 text-sm text-amber-400 dark:text-amber-500">
       Esta sección es para profesores y deportistas activos. Si crees que ves
       este mensaje por error, contacta al administrador para que verifique tu
       cuenta.

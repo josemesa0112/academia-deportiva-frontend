@@ -1,4 +1,9 @@
-const API_URL = 'https://academia-deportiva-api-24zm.onrender.com'
+import { supabase } from '@/lib/supabase'
+
+// En local, definir VITE_API_URL en .env.local (ej. http://localhost:3000).
+// Sin esa variable se usa el backend desplegado en Render — así Vercel no
+// necesita configuración extra.
+const API_URL = import.meta.env.VITE_API_URL || 'https://academia-deportiva-api-24zm.onrender.com'
 
 // Intenta leer el mensaje de error del cuerpo de la respuesta, con fallback al status.
 const parseError = async (res) => {
@@ -13,53 +18,47 @@ const parseError = async (res) => {
   }
 }
 
+// Conserva el status HTTP en el error para poder distinguir "no existe" (404)
+// de una caída de red o del servidor.
+const httpError = async (res) => {
+  const err = new Error(await parseError(res))
+  err.status = res.status
+  return err
+}
+
+// El backend exige `Authorization: Bearer <access_token>` en todo lo que no
+// sea público. getSession() lee de almacenamiento local y refresca el token
+// si está por vencer, así que es barato llamarlo en cada petición.
+const cabeceras = async (extra = {}) => {
+  const { data: { session } } = await supabase.auth.getSession()
+  return {
+    ...extra,
+    ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+  }
+}
+
+const enviar = async (metodo, endpoint, data) => {
+  const res = await fetch(`${API_URL}${endpoint}`, {
+    method: metodo,
+    headers: await cabeceras({ 'Content-Type': 'application/json' }),
+    body: data !== undefined ? JSON.stringify(data) : undefined,
+  })
+  if (!res.ok) throw await httpError(res)
+  return res.json()
+}
+
 const api = {
   get: async (endpoint) => {
-    const res = await fetch(`${API_URL}${endpoint}`)
-    if (!res.ok) throw new Error(await parseError(res))
+    const res = await fetch(`${API_URL}${endpoint}`, { headers: await cabeceras() })
+    if (!res.ok) throw await httpError(res)
     return res.json()
   },
 
-  post: async (endpoint, data) => {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    if (!res.ok) {
-      const error = await res.json()
-      // Si tiene array de errores de validación
-      if (error.errors && error.errors.length > 0) {
-        throw new Error(error.errors.map((e) => e.mensaje).join('\n'))
-      }
-      throw new Error(error.error || `Error ${res.status}`)
-    }
-    return res.json()
-  },
+  post: (endpoint, data) => enviar('POST', endpoint, data ?? {}),
 
-  put: async (endpoint, data) => {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    })
-    if (!res.ok) {
-      const error = await res.json()
-      if (error.errors && error.errors.length > 0) {
-        throw new Error(error.errors.map((e) => e.mensaje).join('\n'))
-      }
-      throw new Error(error.error || `Error ${res.status}`)
-    }
-    return res.json()
-  },
+  put: (endpoint, data) => enviar('PUT', endpoint, data ?? {}),
 
-  delete: async (endpoint) => {
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'DELETE'
-    })
-    if (!res.ok) throw new Error(await parseError(res))
-    return res.json()
-  }
+  delete: (endpoint) => enviar('DELETE', endpoint),
 }
 
 export default api

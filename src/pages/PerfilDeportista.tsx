@@ -168,7 +168,7 @@ export default function PerfilDeportista() {
             {iniciales(deportista.nombre, deportista.apellido)}
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold">{deportista.nombre} {deportista.apellido}</h2>
+            <h2 className="text-2xl font-bold text-title">{deportista.nombre} {deportista.apellido}</h2>
             <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mt-1">
               {deportista.numero_documento && (
                 <span className="inline-flex items-center gap-1"><IdCard className="h-3 w-3" />{deportista.numero_documento}</span>
@@ -279,14 +279,14 @@ export default function PerfilDeportista() {
               ) : (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={datosGrafica}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(150 10% 88%)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(218 30% 23%)" />
                     <XAxis dataKey="fecha" tick={{ fontSize: 12 }} />
                     <YAxis yAxisId="left" tick={{ fontSize: 12 }} label={{ value: "kg", angle: -90, position: "insideLeft", style: { fontSize: 11 } }} />
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} label={{ value: "IMC", angle: 90, position: "insideRight", style: { fontSize: 11 } }} />
                     <Tooltip />
                     <Legend />
-                    <Line yAxisId="left" type="monotone" dataKey="peso" name="Peso (kg)" stroke="hsl(152, 60%, 28%)" strokeWidth={2} dot={{ r: 3 }} />
-                    <Line yAxisId="right" type="monotone" dataKey="imc" name="IMC" stroke="hsl(25, 80%, 50%)" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line yAxisId="left" type="monotone" dataKey="peso" name="Peso (kg)" stroke="hsl(213 90% 58%)" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line yAxisId="right" type="monotone" dataKey="imc" name="IMC" stroke="hsl(45 96% 58%)" strokeWidth={2} dot={{ r: 3 }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
@@ -359,7 +359,7 @@ export default function PerfilDeportista() {
                               Pagada · {formatFecha(m.fecha_pago)}
                             </Badge>
                           ) : (
-                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30">
                               Pendiente
                             </Badge>
                           )}
@@ -404,7 +404,7 @@ export default function PerfilDeportista() {
                               Pagada · {formatFecha(m.fecha_pago)}
                             </Badge>
                           ) : (
-                            <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30">
                               Pendiente
                             </Badge>
                           )}
