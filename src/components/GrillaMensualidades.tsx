@@ -2,7 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, Search, X, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Check, Search, X, Loader2, ChevronLeft, ChevronRight, MoreVertical, CheckCheck, Undo2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -42,6 +51,10 @@ export default function GrillaMensualidades() {
   const [categoria, setCategoria] = useState(TODAS);
   // Celdas en curso, para no permitir dobles clics sobre la misma.
   const [enProceso, setEnProceso] = useState<Set<string>>(new Set());
+  // Acción masiva pendiente de confirmar. Marcar un mes entero afecta a
+  // decenas de deportistas, así que nunca se ejecuta con un solo clic.
+  const [confirmacion, setConfirmacion] = useState<{ indiceMes: number; pagada: boolean } | null>(null);
+  const [aplicandoMes, setAplicandoMes] = useState(false);
 
   const cargar = useCallback(async (añoPedido: number) => {
     setCargando(true);
@@ -152,6 +165,41 @@ export default function GrillaMensualidades() {
     }
   };
 
+  // Aplica la acción a los deportistas que están a la vista: si hay un filtro
+  // de categoría o búsqueda activo, solo afecta a esos. Así lo que ocurre
+  // coincide con lo que el administrador ve.
+  const aplicarMesCompleto = async () => {
+    if (!confirmacion) return;
+    const { indiceMes, pagada } = confirmacion;
+    const hayFiltro = categoria !== TODAS || busqueda.trim() !== "";
+
+    setAplicandoMes(true);
+    try {
+      const res: any = await api.post("/api/mensualidades/marcar-mes", {
+        mes: indiceMes + 1,
+        año,
+        pagada,
+        ...(hayFiltro ? { ids_deportistas: filas.map(f => f.id_deportista) } : {}),
+      });
+      toast({
+        title: pagada ? "Mes marcado como pagado" : "Pagos revertidos",
+        description: res?.message,
+      });
+      setConfirmacion(null);
+      // Aquí sí se recarga: cambiaron muchas filas de golpe y el servidor
+      // sabe cuáles se crearon y con qué valor.
+      await cargar(año);
+    } catch (err: any) {
+      toast({
+        title: "No se pudo aplicar",
+        description: err?.message || "Intenta de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setAplicandoMes(false);
+    }
+  };
+
   const añosDisponibles = useMemo(() => {
     const actual = new Date().getFullYear();
     return [actual - 2, actual - 1, actual, actual + 1];
@@ -239,11 +287,34 @@ export default function GrillaMensualidades() {
                   Deportista
                 </th>
                 {MESES_CORTOS.map((m, i) => (
-                  <th key={m} className="min-w-[58px] px-2 py-3 text-center font-semibold">
-                    <span className="block">{m}</span>
-                    <span className="block text-[10px] font-normal text-muted-foreground">
-                      {totales[i].pagadas}/{filas.length}
-                    </span>
+                  <th key={m} className="min-w-[64px] px-1 py-2 text-center font-semibold">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="mx-auto flex flex-col items-center rounded px-2 py-1 transition-colors hover:bg-muted"
+                          title={`Acciones para ${MESES_LARGOS[i]}`}
+                        >
+                          <span className="flex items-center gap-1">
+                            {m}
+                            <MoreVertical className="h-3 w-3 text-muted-foreground" />
+                          </span>
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            {totales[i].pagadas}/{filas.length}
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="center">
+                        <DropdownMenuItem onClick={() => setConfirmacion({ indiceMes: i, pagada: true })}>
+                          <CheckCheck className="mr-2 h-4 w-4" />
+                          Marcar todos como pagados
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setConfirmacion({ indiceMes: i, pagada: false })}>
+                          <Undo2 className="mr-2 h-4 w-4" />
+                          Quitar el pago a todos
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </th>
                 ))}
                 <th className="min-w-[70px] px-3 py-3 text-center font-semibold">Año</th>
@@ -326,6 +397,49 @@ export default function GrillaMensualidades() {
           </table>
         </div>
       )}
+
+      <AlertDialog open={confirmacion !== null} onOpenChange={o => !o && setConfirmacion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmacion?.pagada
+                ? `¿Marcar ${MESES_LARGOS[confirmacion.indiceMes]} como pagado?`
+                : `¿Quitar el pago de ${confirmacion ? MESES_LARGOS[confirmacion.indiceMes] : ""}?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  {confirmacion?.pagada
+                    ? <>Se registrará el pago de <strong>{MESES_LARGOS[confirmacion.indiceMes]} de {año}</strong> a <strong>{filas.length} deportista{filas.length === 1 ? "" : "s"}</strong>. Las mensualidades que aún no existan se crearán.</>
+                    : <>Se quitará el pago de <strong>{confirmacion ? MESES_LARGOS[confirmacion.indiceMes] : ""} de {año}</strong> a <strong>{filas.length} deportista{filas.length === 1 ? "" : "s"}</strong>. Los registros no se borran, vuelven a pendiente.</>}
+                </p>
+                {(categoria !== TODAS || busqueda.trim() !== "") && (
+                  <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-400">
+                    Solo aplica a los {filas.length} deportistas que tienes filtrados en pantalla
+                    {categoria !== TODAS ? ` (categoría ${categoria})` : ""}
+                    {busqueda.trim() ? ` (búsqueda "${busqueda.trim()}")` : ""}.
+                  </p>
+                )}
+                {confirmacion?.pagada && (
+                  <p className="text-muted-foreground">
+                    Los que ya estaban pagados conservan su fecha original.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={aplicandoMes}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); aplicarMesCompleto(); }}
+              disabled={aplicandoMes}
+            >
+              {aplicandoMes && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {confirmacion?.pagada ? "Sí, marcar todos" : "Sí, quitar el pago"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
