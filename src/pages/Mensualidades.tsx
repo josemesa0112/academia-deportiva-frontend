@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
+import GrillaMensualidades from "@/components/GrillaMensualidades";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, LayoutGrid, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { BadgeDollarSign, CalendarPlus, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -167,7 +169,7 @@ export default function Mensualidades() {
   }
 };
 
-  return (
+  const vistaLista = (
     <CrudPage
       title={tituloPagina}
       endpoint="/api/mensualidades"
@@ -217,9 +219,32 @@ export default function Mensualidades() {
           >
             <Undo2 className="h-4 w-4" /> Revertir
           </Button>
-          
+
         )
       }
     />
+  );
+
+  return (
+    <Tabs defaultValue="grilla" className="w-full">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold text-title">Mensualidades</h2>
+        <TabsList>
+          <TabsTrigger value="grilla" className="gap-2">
+            <LayoutGrid className="h-4 w-4" /> Grilla anual
+          </TabsTrigger>
+          <TabsTrigger value="lista" className="gap-2">
+            <List className="h-4 w-4" /> Mes actual
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="grilla">
+        <GrillaMensualidades />
+      </TabsContent>
+
+      {/* La vista de lista conserva crear, editar, exportar y generar mes. */}
+      <TabsContent value="lista">{vistaLista}</TabsContent>
+    </Tabs>
   );
 }
