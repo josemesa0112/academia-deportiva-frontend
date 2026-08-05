@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +57,15 @@ const formatAntiguedad = (meses: number) => {
 export default function PerfilDeportista() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Al perfil se llega desde Deportistas, pero también desde Mensualidades y
+  // Matrículas. Se vuelve a la pantalla anterior; si se entró por URL directa
+  // (no hay historial propio), se cae al listado de deportistas.
+  const volver = () => {
+    if (location.key !== "default") navigate(-1);
+    else navigate("/deportistas");
+  };
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -142,7 +151,7 @@ export default function PerfilDeportista() {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <p className="text-muted-foreground">No se encontró el deportista.</p>
-        <Button variant="outline" onClick={() => navigate("/deportistas")}>
+        <Button variant="outline" onClick={volver}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Volver
         </Button>
       </div>
@@ -157,8 +166,8 @@ export default function PerfilDeportista() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate("/deportistas")} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Volver a deportistas
+        <Button variant="ghost" onClick={volver} className="gap-2">
+          <ArrowLeft className="h-4 w-4" /> Volver
         </Button>
       </div>
 

@@ -12,6 +12,7 @@ import {
 import {
   Check, Search, X, Loader2, ChevronLeft, ChevronRight, MoreVertical, CheckCheck, Undo2,
 } from "lucide-react";
+import EnlaceDeportista from "@/components/EnlaceDeportista";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -326,7 +327,11 @@ export default function GrillaMensualidades() {
                 return (
                   <tr key={fila.id_deportista} className="border-b last:border-0 hover:bg-muted/20">
                     <td className="sticky left-0 z-10 bg-card px-4 py-2">
-                      <div className="font-medium leading-tight">{fila.apellido} {fila.nombre}</div>
+                      <div className="font-medium leading-tight">
+                        <EnlaceDeportista id={fila.id_deportista}>
+                          {fila.apellido} {fila.nombre}
+                        </EnlaceDeportista>
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         {fila.categoria || "Sin categoría"}
                         {fila.valor_mensualidad ? ` · ${formatMoneda(fila.valor_mensualidad)}` : " · sin valor"}

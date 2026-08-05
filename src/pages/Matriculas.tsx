@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
+import EnlaceDeportista from "@/components/EnlaceDeportista";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BadgeDollarSign, Undo2, CalendarPlus } from "lucide-react";
@@ -73,8 +74,17 @@ export default function Matriculas() {
   };
 
   const tableFields: FieldDef[] = [
-    { key: "nombre", label: "Nombre" },
-    { key: "apellido", label: "Apellido" },
+    // Nombre y apellido llevan al perfil del deportista.
+    {
+      key: "nombre",
+      label: "Nombre",
+      render: (v, row) => <EnlaceDeportista id={row.id_deportista}>{v || "—"}</EnlaceDeportista>,
+    },
+    {
+      key: "apellido",
+      label: "Apellido",
+      render: (v, row) => <EnlaceDeportista id={row.id_deportista}>{v || "—"}</EnlaceDeportista>,
+    },
     { key: "numero_documento", label: "Documento" },
     { key: "fecha_inicio", label: "Fecha inicio", render: (v) => v?.split("T")[0] || "—" },
     { key: "valor", label: "Valor", render: (v) => v ? `$${parseInt(v).toLocaleString()}` : "—" },

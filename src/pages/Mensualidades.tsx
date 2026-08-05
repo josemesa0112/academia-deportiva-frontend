@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import GrillaMensualidades from "@/components/GrillaMensualidades";
+import EnlaceDeportista from "@/components/EnlaceDeportista";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, LayoutGrid, List } from "lucide-react";
@@ -114,8 +115,17 @@ export default function Mensualidades() {
   // un único periodo (el del título). El historial completo de cada
   // deportista vive en su perfil.
   const tableFields: FieldDef[] = [
-    { key: "nombre", label: "Nombre" },
-    { key: "apellido", label: "Apellido" },
+    // Nombre y apellido llevan al perfil del deportista.
+    {
+      key: "nombre",
+      label: "Nombre",
+      render: (v, row) => <EnlaceDeportista id={row.id_deportista}>{v || "—"}</EnlaceDeportista>,
+    },
+    {
+      key: "apellido",
+      label: "Apellido",
+      render: (v, row) => <EnlaceDeportista id={row.id_deportista}>{v || "—"}</EnlaceDeportista>,
+    },
     { key: "numero_documento", label: "Documento" },
     { key: "valor", label: "Valor", render: (v) => v ? `$${parseInt(v).toLocaleString()}` : "—" },
     {
