@@ -24,6 +24,8 @@ export interface FieldDef {
   // Si retorna false, el campo no se muestra en el form (ni se valida como
   // obligatorio). Útil para campos condicionales según otro valor del form.
   showIf?: (form: Record<string, string>) => boolean;
+  // El campo se muestra pero puede quedar vacío al guardar.
+  optional?: boolean;
 }
 
 export interface SortOption {
@@ -226,10 +228,10 @@ export default function CrudPage({
   }
 
   const handleSubmit = async () => {
-    // Solo se exigen los campos que están visibles según showIf
-    // (excluyendo los de tipo switch, que aceptan false como valor válido).
+    // Solo se exigen los campos visibles según showIf, que no sean switch
+    // (aceptan false como valor válido) ni estén marcados como opcionales.
     const required = editFields.filter(f =>
-      f.type !== "switch" && (!f.showIf || f.showIf(form))
+      f.type !== "switch" && !f.optional && (!f.showIf || f.showIf(form))
     )
     const missing = required.some(f => !form[f.key]?.toString().trim())
     if (missing) {

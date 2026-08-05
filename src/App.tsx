@@ -17,6 +17,7 @@ import MiPerfil from "@/pages/MiPerfil";
 import Proveedores from "@/pages/Proveedores";
 import Productos from "@/pages/Productos";
 import Compras from "@/pages/Compras";
+import Gastos from "@/pages/Gastos";
 import Canchas from "@/pages/Canchas";
 import Entrenamientos from "@/pages/Entrenamientos";
 import Asistencias from "@/pages/Asistencias";
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/proveedores" element={<Proveedores />} />
               <Route path="/productos" element={<Productos />} />
               <Route path="/compras" element={<Compras />} />
+              <Route path="/gastos" element={<Gastos />} />
               <Route path="/canchas" element={<Canchas />} />
               <Route path="/entrenamientos" element={<Entrenamientos />} />
               <Route path="/asistencias" element={<Asistencias />} />

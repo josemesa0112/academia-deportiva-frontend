@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, GraduationCap, Dumbbell, Truck, Package,
-  ShoppingCart, MapPin, Calendar, ClipboardCheck, FileText, CreditCard, LogOut, User
+  ShoppingCart, MapPin, Calendar, ClipboardCheck, FileText, CreditCard, LogOut, User, Wallet
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +33,7 @@ const secciones = [
       { title: "Proveedores", url: "/proveedores", icon: Truck, roles: [1] },
       { title: "Productos", url: "/productos", icon: Package, roles: [1] },
       { title: "Compras", url: "/compras", icon: ShoppingCart, roles: [1] },
+      { title: "Gastos", url: "/gastos", icon: Wallet, roles: [1] },
       { title: "Matrículas", url: "/matriculas", icon: FileText, roles: [1] },
       { title: "Mensualidades", url: "/mensualidades", icon: CreditCard, roles: [1] },
     ],

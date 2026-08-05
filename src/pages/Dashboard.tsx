@@ -60,8 +60,14 @@ interface Resumen {
     cantidad_pendientes: number;
     pendiente_matriculas: number;
     cantidad_pendientes_matriculas: number;
+    // gastos = compras a proveedores + egresos operativos (arriendo, etc.)
     gastos: number;
+    gastos_compras: number;
     cantidad_compras: number;
+    gastos_operativos: number;
+    cantidad_gastos: number;
+    gastos_por_tipo: { tipo: string; total: number }[];
+    balance_mes: number;
     recaudo_mes_anterior: number;
     cambio_porcentual: number | null;
   };
@@ -188,11 +194,13 @@ export default function Dashboard() {
             sub={`${data.financiero.cantidad_pendientes_matriculas} matrícula${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} acumulada${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} sin pago`}
             color="amber"
           />
+          {/* Suma compras a proveedores + egresos operativos. El subtítulo
+              aclara de dónde sale la cifra para que no se lea solo como compras. */}
           <KpiFinanciero
             icon={ShoppingCart}
             label="Gastos del mes"
             value={formatMonedaFull(data.financiero.gastos)}
-            sub={`${data.financiero.cantidad_compras} compra${data.financiero.cantidad_compras === 1 ? "" : "s"} a proveedores`}
+            sub={`${formatMonedaFull(data.financiero.gastos_compras)} en ${data.financiero.cantidad_compras} compra${data.financiero.cantidad_compras === 1 ? "" : "s"} · ${formatMonedaFull(data.financiero.gastos_operativos)} en ${data.financiero.cantidad_gastos} gasto${data.financiero.cantidad_gastos === 1 ? "" : "s"}`}
             color="red"
           />
           <Card className="overflow-hidden">
