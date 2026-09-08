@@ -50,10 +50,19 @@ interface CrudPageProps {
   searchPlaceholder?: string;
   sortOptions?: SortOption[];
   groupBy?: string;
+  // Botones de filtro rápido por el valor de una columna (ej. categoría).
+  // `orderField` permite ordenarlos por un id numérico en vez de alfabético,
+  // que para nombres como "Sub 6" / "Sub 10" da un orden equivocado.
+  chipFilter?: { field: string; emptyLabel?: string; orderField?: string };
   groupEmptyLabel?: string;
   pendingPersonas?: PendingPersonasConfig;
   rowActions?: (row: Record<string, any>, refresh: () => void) => React.ReactNode;
-  headerActions?: (refresh: () => void) => React.ReactNode;
+  // Segundo argumento: contexto de lo que se está viendo, para que una acción
+  // masiva pueda acotarse a las filas filtradas en pantalla.
+  headerActions?: (
+    refresh: () => void,
+    contexto: { visibles: Record<string, any>[]; total: number; filtrado: boolean }
+  ) => React.ReactNode;
   // Filtro extra aplicado antes de search/sort (ej. limitar entrenamientos
   // a las categorías que el profesor logueado tiene a cargo).
   dataFilter?: (row: Record<string, any>) => boolean;
@@ -62,6 +71,8 @@ interface CrudPageProps {
   // Si false, oculta el botón "Nuevo" (ej. profesor sin categorías).
   canCreate?: boolean;
 }
+
+const TODOS = "__todos__";
 
 const compareValues = (a: any, b: any, type: SortOption["type"] = "string") => {
   const aEmpty = a === null || a === undefined || a === "";
@@ -84,6 +95,7 @@ export default function CrudPage({
   searchPlaceholder,
   sortOptions,
   groupBy,
+  chipFilter,
   groupEmptyLabel = "Sin asignar",
   pendingPersonas,
   rowActions,
@@ -99,6 +111,8 @@ export default function CrudPage({
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  // Valor centinela del filtro de chips cuando no hay ninguno activo.
+  const [chipActivo, setChipActivo] = useState<string>(TODOS);
   const [sortKey, setSortKey] = useState<string>("");
   const [personasPendientes, setPersonasPendientes] = useState<Record<string, any>[]>([]);
   // Grupos colapsados (cuando groupBy está activo). Por defecto todos expandidos.
@@ -116,9 +130,49 @@ export default function CrudPage({
   const displayFields = tableFields || fields.filter(f => !f.formOnly);
   const editFields = formFields || fields.filter(f => !f.tableOnly);
 
+  // Base tras el pre-filtro contextual, antes de chips/búsqueda. De aquí
+  // salen los chips, para que sus contadores no cambien al buscar.
+  const dataBase = useMemo(
+    () => (dataFilter ? data.filter(dataFilter) : data),
+    [data, dataFilter]
+  );
+
+  const valorChip = (row: Record<string, any>) => {
+    const v = row[chipFilter!.field];
+    return v !== null && v !== undefined && String(v).trim() !== ""
+      ? String(v)
+      : (chipFilter!.emptyLabel || "Sin asignar");
+  };
+
+  const chips = useMemo(() => {
+    if (!chipFilter) return [];
+    const mapa = new Map<string, { label: string; orden: number; count: number }>();
+    for (const row of dataBase) {
+      const label = valorChip(row);
+      const existente = mapa.get(label);
+      if (existente) { existente.count++; continue; }
+      const orden = chipFilter.orderField ? Number(row[chipFilter.orderField]) : NaN;
+      mapa.set(label, { label, orden: Number.isNaN(orden) ? Infinity : orden, count: 1 });
+    }
+    const lista = Array.from(mapa.values());
+    return chipFilter.orderField
+      ? lista.sort((a, b) => a.orden - b.orden)
+      : lista.sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataBase, chipFilter]);
+
+  // Si el chip activo desaparece tras recargar, se vuelve a "Todas" para no
+  // dejar la tabla vacía sin explicación.
+  useEffect(() => {
+    if (chipActivo === TODOS) return;
+    if (!chips.some(c => c.label === chipActivo)) setChipActivo(TODOS);
+  }, [chips, chipActivo]);
+
   const filteredData = useMemo(() => {
-    // Pre-filtro contextual (ej. solo categorías del profesor logueado)
-    let result = dataFilter ? data.filter(dataFilter) : data;
+    let result = dataBase;
+    if (chipFilter && chipActivo !== TODOS) {
+      result = result.filter(row => valorChip(row) === chipActivo);
+    }
     const q = searchQuery.trim().toLowerCase();
     if (q && searchFields && searchFields.length > 0) {
       result = result.filter(row =>
@@ -135,7 +189,8 @@ export default function CrudPage({
       }
     }
     return result;
-  }, [data, searchQuery, sortKey, searchFields, sortOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataBase, chipActivo, chipFilter, searchQuery, sortKey, searchFields, sortOptions]);
 
   const showToolbar = (searchFields && searchFields.length > 0) || (sortOptions && sortOptions.length > 0);
 
@@ -392,7 +447,11 @@ export default function CrudPage({
       <div className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <h2 className="text-2xl font-bold text-title">{title}</h2>
         <div className="flex items-center gap-2 flex-wrap">
-          {headerActions && headerActions(fetchData)}
+          {headerActions && headerActions(fetchData, {
+            visibles: filteredData,
+            total: dataBase.length,
+            filtrado: (chipFilter != null && chipActivo !== TODOS) || searchQuery.trim() !== "",
+          })}
           {canCreate && (
             <Button onClick={openCreate} className="gap-2">
               <Plus className="h-4 w-4" /> Nuevo
@@ -464,6 +523,41 @@ export default function CrudPage({
               </SelectContent>
             </Select>
           )}
+        </div>
+      )}
+
+      {chipFilter && chips.length > 1 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            variant={chipActivo === TODOS ? "default" : "outline"}
+            size="sm"
+            className="gap-2"
+            aria-pressed={chipActivo === TODOS}
+            onClick={() => setChipActivo(TODOS)}
+          >
+            Todas
+            <span className="rounded-full bg-background/20 px-1.5 text-xs font-normal">
+              {dataBase.length}
+            </span>
+          </Button>
+          {chips.map(c => {
+            const activa = chipActivo === c.label;
+            return (
+              <Button
+                key={c.label}
+                variant={activa ? "default" : "outline"}
+                size="sm"
+                className="gap-2"
+                aria-pressed={activa}
+                onClick={() => setChipActivo(activa ? TODOS : c.label)}
+              >
+                {c.label}
+                <span className={`rounded-full px-1.5 text-xs font-normal ${activa ? "bg-background/20" : "bg-muted"}`}>
+                  {c.count}
+                </span>
+              </Button>
+            );
+          })}
         </div>
       )}
 

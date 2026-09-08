@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import EnlaceDeportista from "@/components/EnlaceDeportista";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { BadgeDollarSign, Undo2, CalendarPlus } from "lucide-react";
+import { BadgeDollarSign, Undo2, CalendarPlus, CheckCheck, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 
@@ -60,6 +64,41 @@ export default function Matriculas() {
     }
   };
 
+  // Acción masiva pendiente de confirmar. Marcar la matrícula de decenas de
+  // deportistas nunca debe ocurrir con un solo clic.
+  const [confirmacion, setConfirmacion] = useState<
+    { visibles: Record<string, any>[]; refresh: () => void; filtrado: boolean } | null
+  >(null);
+  const [aplicando, setAplicando] = useState(false);
+
+  const añoEnCurso = new Date().getFullYear();
+
+  const aplicarTodasPagadas = async () => {
+    if (!confirmacion) return;
+    setAplicando(true);
+    try {
+      const res: any = await api.post("/api/matriculas/marcar-anio", {
+        año: añoEnCurso,
+        pagada: true,
+        // Si hay un filtro activo, la acción se limita a lo que se ve.
+        ...(confirmacion.filtrado
+          ? { ids_deportistas: confirmacion.visibles.map(r => r.id_deportista) }
+          : {}),
+      });
+      toast({ title: "Matrículas actualizadas", description: res?.message });
+      confirmacion.refresh();
+      setConfirmacion(null);
+    } catch (err: any) {
+      toast({
+        title: "No se pudo aplicar",
+        description: err?.message || "Intenta de nuevo",
+        variant: "destructive",
+      });
+    } finally {
+      setAplicando(false);
+    }
+  };
+
   const handleGenerarAño = async (refresh: () => void) => {
     try {
       const res: any = await api.post("/api/matriculas/generar-anio", {});
@@ -113,6 +152,7 @@ export default function Matriculas() {
   ];
 
   return (
+    <>
     <CrudPage
       title="Matrículas"
       endpoint="/api/matriculas"
@@ -127,10 +167,20 @@ export default function Matriculas() {
         { key: "fecha_pago", label: "Estado de pago", type: "date" },
       ]}
       groupBy="categoria"
-      headerActions={(refresh) => (
-        <Button variant="outline" className="gap-2" onClick={() => handleGenerarAño(refresh)}>
-          <CalendarPlus className="h-4 w-4" /> Generar matrículas
-        </Button>
+      chipFilter={{ field: "categoria", emptyLabel: "Sin categoría", orderField: "id_categoria" }}
+      headerActions={(refresh, { visibles, filtrado }) => (
+        <>
+          <Button
+            variant="outline"
+            className="gap-2 border-green-600/30 text-green-400 hover:bg-green-500/10 hover:text-green-400"
+            onClick={() => setConfirmacion({ visibles, refresh, filtrado })}
+          >
+            <CheckCheck className="h-4 w-4" /> Todos pagaron
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => handleGenerarAño(refresh)}>
+            <CalendarPlus className="h-4 w-4" /> Generar matrículas
+          </Button>
+        </>
       )}
       rowActions={(row, refresh) =>
         !row.fecha_pago ? (
@@ -154,5 +204,42 @@ export default function Matriculas() {
         )
       }
     />
+
+    <AlertDialog open={confirmacion !== null} onOpenChange={o => !o && setConfirmacion(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Marcar todas las matrículas como pagadas?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm">
+              <p>
+                Se registrará el pago de la matrícula <strong>{añoEnCurso}</strong>
+                {confirmacion?.filtrado
+                  ? <> a los <strong>{confirmacion.visibles.length}</strong> que tienes filtrados en pantalla.</>
+                  : <> a <strong>todos los deportistas activos</strong>. Los que aún no tengan matrícula de este año se crearán en el momento.</>}
+              </p>
+              {confirmacion?.filtrado && (
+                <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-amber-400">
+                  Al haber un filtro activo, solo se afecta a esos {confirmacion.visibles.length} registros.
+                </p>
+              )}
+              <p className="text-muted-foreground">
+                Las que ya estaban pagadas conservan su fecha original.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={aplicando}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => { e.preventDefault(); aplicarTodasPagadas(); }}
+            disabled={aplicando}
+          >
+            {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Sí, marcar todas
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
