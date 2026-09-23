@@ -66,6 +66,9 @@ export default function Entrenamientos() {
   const puedeCrear =
     userRol?.id_rol === 1 || (userRol?.id_rol === 2 && !profesorSinCategorias);
 
+  // El deportista solo consulta: ni crear, ni editar, ni borrar.
+  const soloLectura = userRol?.id_rol === 3;
+
   const emptyMessage = profesorSinCategorias
     ? "No tienes categorías asignadas. Contacta al administrador para que te asigne las categorías que entrenarás."
     : deportistaSinCategoria
@@ -157,6 +160,7 @@ export default function Entrenamientos() {
       dataFilter={dataFilter}
       emptyFilteredMessage={emptyMessage}
       canCreate={puedeCrear}
+      soloLectura={soloLectura}
     />
   );
 }

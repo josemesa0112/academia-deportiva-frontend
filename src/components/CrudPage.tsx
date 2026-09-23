@@ -74,6 +74,10 @@ interface CrudPageProps {
   emptyFilteredMessage?: string;
   // Si false, oculta el botón "Nuevo" (ej. profesor sin categorías).
   canCreate?: boolean;
+  // Solo lectura: oculta crear, editar y borrar, y con ellos la columna de
+  // acciones. El backend lo exige igual; esto es para no ofrecer botones
+  // que van a fallar.
+  soloLectura?: boolean;
 }
 
 const TODOS = "__todos__";
@@ -108,6 +112,7 @@ export default function CrudPage({
   dataFilter,
   emptyFilteredMessage,
   canCreate = true,
+  soloLectura = false,
 }: CrudPageProps) {
   const { toast } = useToast();
   const [data, setData] = useState<Record<string, any>[]>([]);
@@ -441,7 +446,7 @@ export default function CrudPage({
           {displayFields.map(f => (
             <TableHead key={f.key}>{f.label}</TableHead>
           ))}
-          <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>
+          {!soloLectura && <TableHead className="text-right whitespace-nowrap">Acciones</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -454,15 +459,17 @@ export default function CrudPage({
             {displayFields.map(f => (
               <TableCell key={f.key}>{renderCellValue(f, row)}</TableCell>
             ))}
-            <TableCell className="text-right">
-              {rowActions && rowActions(row, fetchData)}
-              <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </TableCell>
+            {!soloLectura && (
+              <TableCell className="text-right">
+                {rowActions && rowActions(row, fetchData)}
+                <Button variant="ghost" size="icon" onClick={() => openEdit(row)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDelete(String(row.id))} className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>
@@ -479,7 +486,7 @@ export default function CrudPage({
             total: dataBase.length,
             filtrado: (chipFilter != null && chipActivo !== TODOS) || searchQuery.trim() !== "",
           })}
-          {canCreate && (
+          {canCreate && !soloLectura && (
             <Button onClick={openCreate} className="gap-2">
               <Plus className="h-4 w-4" /> Nuevo
             </Button>

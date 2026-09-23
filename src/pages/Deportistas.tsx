@@ -264,9 +264,11 @@ export default function Deportistas() {
       toast({ title: "Error", description: "Completa los campos obligatorios", variant: "destructive" })
       return
     }
+    // Sin peso y estatura no hay IMC: se envía vacío para que quede en null.
+    // Antes caía en "0", que se guardaba como un IMC real de cero.
     const imc = form.peso_actual && form.estatura_actual
       ? (parseFloat(form.peso_actual) / Math.pow(parseFloat(form.estatura_actual), 2)).toFixed(2)
-      : form.IMC_actual || "0"
+      : (form.IMC_actual || "")
     // Limpia strings vacíos a null real para que el backend no los convierta
     // en "null" / "" al castear a integer o numeric.
     const cleaned: Record<string, any> = {}

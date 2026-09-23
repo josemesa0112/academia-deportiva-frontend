@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useRol } from "@/hooks/useRol";
 
 const meses = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -57,6 +58,9 @@ const formatAntiguedad = (meses: number) => {
 export default function PerfilDeportista() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { userRol } = useRol();
+  // El propio deportista no ve cuanto lleva pagado.
+  const esDeportista = userRol?.id_rol === 3;
   const location = useLocation();
 
   // Al perfil se llega desde Deportistas, pero también desde Mensualidades y
@@ -227,11 +231,14 @@ export default function PerfilDeportista() {
 
         {/* RESUMEN */}
         <TabsContent value="resumen" className="space-y-4">
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {/* El deportista no ve el acumulado de lo que ha pagado. */}
+          <div className={`grid gap-4 grid-cols-2 ${esDeportista ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
             <KpiCard icon={Percent} label="% Asistencia" value={`${kpis.porcentajeAsistencia}%`} sub={`${kpis.presentes}/${kpis.totalAsistencias} sesiones`} />
             <KpiCard icon={ClipboardList} label="Mensualidades pendientes" value={String(kpis.mensualidadesPendientes)} />
             <KpiCard icon={CalendarDays} label="Antigüedad" value={kpis.antiguedadTexto} />
-            <KpiCard icon={DollarSign} label="Total pagado" value={formatMoneda(kpis.totalPagado)} />
+            {!esDeportista && (
+              <KpiCard icon={DollarSign} label="Total pagado" value={formatMoneda(kpis.totalPagado)} />
+            )}
           </div>
 
           <Card>

@@ -79,7 +79,7 @@ interface Resumen {
   conteos: {
     // "club" para admin y demás roles; "profesor" cuando el backend acota
     // las cifras a lo que ese profesor tiene a cargo.
-    alcance?: "club" | "profesor";
+    alcance?: "club" | "profesor" | "deportista";
     deportistas: number;
     // Ausentes cuando el alcance es "profesor".
     profesores?: number;
@@ -98,7 +98,17 @@ interface Resumen {
     cancha: string; categoria: string;
     // Solo viene en la vista de profesor: si le toca dictarlo.
     asignado?: boolean;
+    // Solo en la vista de deportista: quién dirige esa sesión.
+    profesores?: Array<{ nombre: string; apellido: string }>;
   }>;
+  // Solo en la vista de deportista: su categoría y sus entrenadores.
+  contexto_deportista?: {
+    categoria: string | null;
+    profesores: Array<{
+      id: number; nombre: string; apellido: string;
+      correo: string | null; numero_telefono: string | null;
+    }>;
+  } | null;
 }
 
 export default function Dashboard() {
@@ -168,6 +178,7 @@ export default function Dashboard() {
   const esAdmin = userRol?.id_rol === 1;
   // El backend decide el alcance y lo informa; el cliente solo lo refleja.
   const esVistaProfesor = data?.conteos?.alcance === "profesor";
+  const esVistaDeportista = data?.conteos?.alcance === "deportista";
 
   return (
     <div className="space-y-6">
@@ -245,6 +256,10 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* El deportista no ve ninguna cifra del club: solo sus
+          entrenamientos y quién los dirige. */}
+      {!esVistaDeportista && (
+      <>
       {/* Bloque KPIs operativos. Solo Admin puede navegar desde estas
           tarjetas; para otros roles son informativas.
           Al profesor no le competen los conteos de profesores y
@@ -329,8 +344,53 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      </>
+      )}
+
+      {/* Entrenadores a cargo de su categoría — solo el deportista. */}
+      {esVistaDeportista && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <GraduationCap className="h-4 w-4 text-primary" />
+              {data.contexto_deportista?.categoria
+                ? `Mi categoría · ${data.contexto_deportista.categoria}`
+                : "Mi categoría"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!data.contexto_deportista?.categoria ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Aún no tienes una categoría asignada. Contacta al administrador.
+              </p>
+            ) : data.contexto_deportista.profesores.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">
+                Todavía no hay un entrenador asignado a tu categoría.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {data.contexto_deportista.profesores.map(p => (
+                  <div key={p.id} className="flex items-center gap-3 rounded-md border p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {iniciales(p.nombre, p.apellido)}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{p.nombre} {p.apellido}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        Entrenador{p.numero_telefono ? ` · ${p.numero_telefono}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cumpleaños + Próximos entrenamientos */}
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+      <div className={`grid gap-4 grid-cols-1 ${esVistaDeportista ? "" : "lg:grid-cols-2"}`}>
+        {!esVistaDeportista && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -383,12 +443,13 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        )}
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-blue-500" />
-              Próximos entrenamientos
+              {esVistaDeportista ? "Próximos entrenamientos de mi categoría" : "Próximos entrenamientos"}
             </CardTitle>
             {esAdmin && (
               <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/entrenamientos")}>
@@ -427,6 +488,11 @@ export default function Dashboard() {
                         {esVistaProfesor && e.asignado && (
                           <Badge variant="outline" className="border-primary/40 text-primary text-xs">
                             A mi cargo
+                          </Badge>
+                        )}
+                        {esVistaDeportista && (e.profesores?.length ?? 0) > 0 && (
+                          <Badge variant="outline" className="text-xs">
+                            {e.profesores!.map(pr => pr.nombre).join(", ")}
                           </Badge>
                         )}
                         {esHoy && <Badge className="bg-blue-500 text-white text-xs">Hoy</Badge>}
