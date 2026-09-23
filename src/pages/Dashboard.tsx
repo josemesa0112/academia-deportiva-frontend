@@ -72,9 +72,13 @@ interface Resumen {
     cambio_porcentual: number | null;
   };
   conteos: {
+    // "club" para admin y demás roles; "profesor" cuando el backend acota
+    // las cifras a lo que ese profesor tiene a cargo.
+    alcance?: "club" | "profesor";
     deportistas: number;
-    profesores: number;
-    proveedores: number;
+    // Ausentes cuando el alcance es "profesor".
+    profesores?: number;
+    proveedores?: number;
     porcentaje_asistencia: number | null;
   };
   recaudacion_historica: Array<{ periodo: string; mes: number; año: number; total: number }>;
@@ -155,6 +159,8 @@ export default function Dashboard() {
   // El bloque financiero solo lo ve el Administrador (rol 1).
   // Los demás roles solo ven la parte operativa y las listas.
   const esAdmin = userRol?.id_rol === 1;
+  // El backend decide el alcance y lo informa; el cliente solo lo refleja.
+  const esVistaProfesor = data?.conteos?.alcance === "profesor";
 
   return (
     <div className="space-y-6">
@@ -226,15 +232,26 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Bloque KPIs operativos — 4 chicos. Solo Admin puede navegar
-          desde estas tarjetas; para otros roles son solo informativas. */}
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <KpiCompact icon={Dumbbell} label="Deportistas" value={data.conteos.deportistas} onClick={esAdmin ? () => navigate("/deportistas") : undefined} />
-        <KpiCompact icon={GraduationCap} label="Profesores" value={data.conteos.profesores} onClick={esAdmin ? () => navigate("/profesores") : undefined} />
-        <KpiCompact icon={Users} label="Proveedores" value={data.conteos.proveedores} onClick={esAdmin ? () => navigate("/proveedores") : undefined} />
+      {/* Bloque KPIs operativos. Solo Admin puede navegar desde estas
+          tarjetas; para otros roles son informativas.
+          Al profesor no le competen los conteos de profesores y
+          proveedores: ve su propio alcance, que el backend ya acota. */}
+      <div className={`grid gap-3 grid-cols-2 ${esVistaProfesor ? "lg:grid-cols-2" : "lg:grid-cols-4"}`}>
+        <KpiCompact
+          icon={Dumbbell}
+          label={esVistaProfesor ? "Deportistas a mi cargo" : "Deportistas"}
+          value={data.conteos.deportistas}
+          onClick={esAdmin ? () => navigate("/deportistas") : undefined}
+        />
+        {!esVistaProfesor && (
+          <>
+            <KpiCompact icon={GraduationCap} label="Profesores" value={data.conteos.profesores ?? 0} onClick={esAdmin ? () => navigate("/profesores") : undefined} />
+            <KpiCompact icon={Users} label="Proveedores" value={data.conteos.proveedores ?? 0} onClick={esAdmin ? () => navigate("/proveedores") : undefined} />
+          </>
+        )}
         <KpiCompact
           icon={Activity}
-          label="Asistencia 4 semanas"
+          label={esVistaProfesor ? "Asistencia en mis sesiones" : "Asistencia 4 semanas"}
           value={data.conteos.porcentaje_asistencia === null ? "—" : `${data.conteos.porcentaje_asistencia}%`}
         />
       </div>
