@@ -91,6 +91,8 @@ interface Resumen {
   proximos_entrenamientos: Array<{
     id: number; fecha: string; hora_inicio: string; hora_fin: string;
     cancha: string; categoria: string;
+    // Solo viene en la vista de profesor: si le toca dictarlo.
+    asignado?: boolean;
   }>;
 }
 
@@ -386,7 +388,9 @@ export default function Dashboard() {
           <CardContent>
             {data.proximos_entrenamientos.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
-                No hay entrenamientos programados en la próxima semana.
+                {esVistaProfesor
+                  ? "No hay entrenamientos de tus categorías en la próxima semana."
+                  : "No hay entrenamientos programados en la próxima semana."}
               </p>
             ) : (
               <div className="space-y-2 max-h-72 overflow-y-auto">
@@ -407,7 +411,15 @@ export default function Dashboard() {
                           {e.hora_inicio?.slice(0, 5)} – {e.hora_fin?.slice(0, 5)} · {e.cancha || "Sin cancha"}
                         </p>
                       </div>
-                      {esHoy && <Badge className="bg-blue-500 text-white text-xs">Hoy</Badge>}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {/* En la vista de profesor: cuáles le toca dictar. */}
+                        {esVistaProfesor && e.asignado && (
+                          <Badge variant="outline" className="border-primary/40 text-primary text-xs">
+                            A mi cargo
+                          </Badge>
+                        )}
+                        {esHoy && <Badge className="bg-blue-500 text-white text-xs">Hoy</Badge>}
+                      </div>
                     </div>
                   );
                 })}
