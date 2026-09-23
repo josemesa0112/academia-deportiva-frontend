@@ -26,6 +26,7 @@ export default function Entrenamientos() {
     canchas: [],
     categorias: [],
     estados: [],
+    profesores: [],
   });
 
   // Filtro por categoría según el rol:
@@ -75,15 +76,21 @@ export default function Entrenamientos() {
 
   useEffect(() => {
     const cargarOpciones = async () => {
-      const [canchas, categorias, estados] = await Promise.all([
+      const [canchas, categorias, estados, profesores] = await Promise.all([
         api.get("/api/canchas"),
         api.get("/api/catalogos/categorias"),
         api.get("/api/catalogos/estados"),
+        // Solo el admin puede listar profesores; para los demás roles el
+        // campo simplemente queda vacío en vez de romper la página.
+        api.get("/api/profesores").catch(() => []),
       ]);
       setOpciones({
         canchas: canchas.map((c: any) => ({ value: String(c.id), label: c.nombre })),
         categorias: categorias.map((c: any) => ({ value: String(c.id), label: c.nombre })),
         estados: estados.map((e: any) => ({ value: String(e.id), label: e.nombre })),
+        profesores: (Array.isArray(profesores) ? profesores : [])
+          .filter((p: any) => p.id_estado === 1)
+          .map((p: any) => ({ value: String(p.id), label: `${p.nombre} ${p.apellido}` })),
       });
     };
     cargarOpciones();
@@ -95,6 +102,26 @@ export default function Entrenamientos() {
     { key: "hora_fin", label: "Hora fin" },
     { key: "cancha", label: "Cancha" },
     { key: "categoria", label: "Categoría" },
+    {
+      key: "profesores",
+      label: "Profesores",
+      render: (_v, row: any) => {
+        const list = Array.isArray(row.profesores) ? row.profesores : [];
+        if (list.length === 0) {
+          // Sin profesor la sesión no le suma el pago a nadie: se avisa.
+          return <span className="text-xs text-amber-400">Sin asignar</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {list.map((p: any) => (
+              <Badge key={p.id} variant="outline" className="text-xs">
+                {p.nombre} {p.apellido}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
+    },
     {
       key: "estado_visual",
       label: "Estado",
@@ -109,6 +136,8 @@ export default function Entrenamientos() {
     { key: "hora_inicio", label: "Hora inicio", type: "time" },
     { key: "hora_fin", label: "Hora fin", type: "time" },
     { key: "id_estado", label: "Estado", type: "select", options: opciones.estados },
+    // Asignar profesores es lo que hace que la sesión cuente para su pago.
+    { key: "profesores", label: "Profesores a cargo", type: "multiselect", options: opciones.profesores, optional: true },
   ];
 
   return (

@@ -163,12 +163,14 @@ export default function PerfilProfesor() {
               )}
             </div>
           </div>
-          {profesor.salario && (
-            <div className="text-center">
-              <div className="text-xs text-muted-foreground uppercase tracking-wide">Salario</div>
-              <div className="text-2xl font-bold">{formatMoneda(profesor.salario)}</div>
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground uppercase tracking-wide">A pagar este mes</div>
+            <div className="text-2xl font-bold">{formatMoneda(profesor.pago_mes ?? 0)}</div>
+            <div className="text-xs text-muted-foreground">
+              {profesor.sesiones_mes ?? 0} {(profesor.sesiones_mes ?? 0) === 1 ? "sesión" : "sesiones"}
+              {" × "}{formatMoneda(profesor.valor_sesion)}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -203,8 +205,19 @@ export default function PerfilProfesor() {
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 text-sm">
-          <Dato label="Salario mensual" value={formatMoneda(profesor.salario)} />
+          <Dato label="Valor por sesión" value={formatMoneda(profesor.valor_sesion)} />
+          <Dato label="Sesiones dictadas este mes" value={String(profesor.sesiones_mes ?? 0)} />
+          <Dato label="A pagar este mes" value={formatMoneda(profesor.pago_mes ?? 0)} />
+          <Dato label="Sesiones programadas" value={String(profesor.sesiones_programadas ?? 0)} />
+          <Dato label="Sesiones dictadas en total" value={String(profesor.sesiones_dictadas ?? 0)} />
+          <Dato label="Pagado acumulado" value={formatMoneda(profesor.pago_acumulado ?? 0)} />
           <Dato label="Estado en la academia" value={profesor.estado} />
+        </CardContent>
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground">
+            El pago se calcula sobre las sesiones ya dictadas. Las programadas
+            se suman cuando llega su fecha.
+          </p>
         </CardContent>
       </Card>
 

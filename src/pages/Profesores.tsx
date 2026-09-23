@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import CrudPage, { FieldDef } from "@/components/CrudPage";
 import { Badge } from "@/components/ui/badge";
+
+const formatMoneda = (v) =>
+  v === null || v === undefined || v === "" ? "—" : `${Number(v).toLocaleString("es-CO")}`;
 import api from "@/lib/api";
 
 export default function Profesores() {
@@ -33,7 +36,31 @@ export default function Profesores() {
     { key: "apellido", label: "Apellido" },
     { key: "numero_documento", label: "Documento" },
     { key: "numero_telefono", label: "Teléfono" },
-    { key: "salario", label: "Salario" },
+    // El pago ya no es un salario fijo: sale de las sesiones dictadas.
+    {
+      key: "valor_sesion",
+      label: "Valor sesión",
+      render: (v) => formatMoneda(v),
+    },
+    {
+      key: "sesiones_mes",
+      label: "Sesiones del mes",
+      render: (_v, row) => (
+        <span>
+          {row.sesiones_mes ?? 0}
+          {Number(row.sesiones_programadas) > 0 && (
+            <span className="ml-1 text-xs text-muted-foreground">
+              (+{row.sesiones_programadas} programadas)
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "pago_mes",
+      label: "A pagar este mes",
+      render: (v) => <span className="font-medium">{formatMoneda(v)}</span>,
+    },
     {
       key: "categorias",
       label: "Categorías a cargo",
@@ -54,7 +81,7 @@ export default function Profesores() {
 
   const formFields: FieldDef[] = [
     { key: "id_persona", label: "Persona", type: "select", options: opciones.personas },
-    { key: "salario", label: "Salario", type: "number", placeholder: "1500000" },
+    { key: "valor_sesion", label: "Valor por sesión", type: "number", placeholder: "40" },
     { key: "categorias", label: "Categorías a cargo", type: "multiselect", options: opciones.categorias },
     { key: "id_estado", label: "Estado", type: "select", options: opciones.estados },
   ];
@@ -71,6 +98,8 @@ export default function Profesores() {
       sortOptions={[
         { key: "nombre", label: "Nombre (A-Z)", type: "string" },
         { key: "apellido", label: "Apellido (A-Z)", type: "string" },
+        { key: "sesiones_mes", label: "Sesiones del mes", type: "number" },
+        { key: "pago_mes", label: "A pagar este mes", type: "number" },
       ]}
       pendingPersonas={{ rolId: 2, personaIdField: "id_persona", rolLabel: "profesor" }}
     />
