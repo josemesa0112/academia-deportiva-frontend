@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Search, X, AlertCircle, UserPlus, User, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useRol } from "@/hooks/useRol";
@@ -47,6 +48,9 @@ export default function Deportistas() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortKey, setSortKey] = useState<string>("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>(TODAS);
+  // Los inactivos se ocultan de entrada; el interruptor los trae de vuelta
+  // para poder reactivarlos desde el formulario.
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [personasRol3, setPersonasRol3] = useState<Record<string, any>[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -82,13 +86,21 @@ export default function Deportistas() {
   // Si el usuario es Profesor (id_rol === 2), solo ve deportistas de sus
   // categorías asignadas. Admin ve todo. Otros roles también ven todo
   // (esta página solo es accesible para Admin/Profesor según el sidebar).
-  const dataVisible = useMemo(() => {
+  const dataPorRol = useMemo(() => {
     if (userRol?.id_rol !== 2) return data;
     const idsCategoriaPermitidas = new Set(
       (userRol.profesor_categorias || []).map(c => Number(c.id))
     );
     return data.filter(r => idsCategoriaPermitidas.has(Number(r.id_categoria)));
   }, [data, userRol]);
+
+  const esInactivo = (row: Record<string, any>) => Number(row.id_estado) === 2;
+  const totalInactivos = useMemo(
+    () => dataPorRol.filter(esInactivo).length, [dataPorRol]);
+
+  const dataVisible = useMemo(
+    () => (mostrarInactivos ? dataPorRol : dataPorRol.filter(r => !esInactivo(r))),
+    [dataPorRol, mostrarInactivos]);
 
   // Botones de categoría: solo las que tienen deportistas visibles para este
   // usuario, ordenadas por id (Sub 6, 8, 10… — alfabéticamente quedarían mal).
@@ -336,6 +348,19 @@ export default function Deportistas() {
             </button>
           )}
         </div>
+        {totalInactivos > 0 && (
+          <div className="flex items-center gap-2 rounded-md border bg-card px-3 sm:px-4">
+            <Switch
+              id="mostrar-inactivos"
+              checked={mostrarInactivos}
+              onCheckedChange={setMostrarInactivos}
+            />
+            <Label htmlFor="mostrar-inactivos" className="cursor-pointer whitespace-nowrap text-sm font-normal">
+              Mostrar inactivos
+              <span className="ml-1 text-xs text-muted-foreground">({totalInactivos})</span>
+            </Label>
+          </div>
+        )}
         <Select value={sortKey || "__none__"} onValueChange={v => setSortKey(v === "__none__" ? "" : v)}>
           <SelectTrigger className="sm:w-64"><SelectValue placeholder="Ordenar por..." /></SelectTrigger>
           <SelectContent>
@@ -432,7 +457,7 @@ export default function Deportistas() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((row, i) => (
-                      <TableRow key={`${categoria}-${i}`}>
+                      <TableRow key={`${categoria}-${i}`} className={esInactivo(row) ? "opacity-60" : undefined}>
                         <TableCell>{row.nombre || "—"}</TableCell>
                         <TableCell>{row.apellido || "—"}</TableCell>
                         <TableCell>{row.clasificacion || "—"}</TableCell>

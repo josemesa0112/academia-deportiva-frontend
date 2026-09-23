@@ -42,6 +42,8 @@ export default function Gastos() {
   const resumen = useMemo(() => {
     const { mes, año } = mesActual();
     const delMes = data.filter(g => {
+      // Un gasto anulado no cuenta para el total, aunque se esté mostrando.
+      if (Number(g.id_estado) === 2) return false;
       if (!g.fecha) return false;
       const d = new Date(g.fecha);
       return d.getUTCMonth() + 1 === mes && d.getUTCFullYear() === año;

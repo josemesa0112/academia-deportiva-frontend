@@ -54,6 +54,10 @@ interface CrudPageProps {
   // `orderField` permite ordenarlos por un id numérico en vez de alfabético,
   // que para nombres como "Sub 6" / "Sub 10" da un orden equivocado.
   chipFilter?: { field: string; emptyLabel?: string; orderField?: string };
+  // Por defecto la tabla oculta los registros inactivos (id_estado = 2) y
+  // ofrece un interruptor para verlos. Poner en true donde id_estado NO
+  // signifique activo/inactivo (por ejemplo asistencia: presente/ausente).
+  sinFiltroEstado?: boolean;
   groupEmptyLabel?: string;
   pendingPersonas?: PendingPersonasConfig;
   rowActions?: (row: Record<string, any>, refresh: () => void) => React.ReactNode;
@@ -96,6 +100,7 @@ export default function CrudPage({
   sortOptions,
   groupBy,
   chipFilter,
+  sinFiltroEstado = false,
   groupEmptyLabel = "Sin asignar",
   pendingPersonas,
   rowActions,
@@ -113,6 +118,10 @@ export default function CrudPage({
   const [searchQuery, setSearchQuery] = useState("");
   // Valor centinela del filtro de chips cuando no hay ninguno activo.
   const [chipActivo, setChipActivo] = useState<string>(TODOS);
+  // Los inactivos se ocultan de entrada: son la excepción, y verlos todo el
+  // tiempo ensucia el listado. El interruptor los trae de vuelta para
+  // poder reactivarlos.
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
   const [sortKey, setSortKey] = useState<string>("");
   const [personasPendientes, setPersonasPendientes] = useState<Record<string, any>[]>([]);
   // Grupos colapsados (cuando groupBy está activo). Por defecto todos expandidos.
@@ -132,10 +141,24 @@ export default function CrudPage({
 
   // Base tras el pre-filtro contextual, antes de chips/búsqueda. De aquí
   // salen los chips, para que sus contadores no cambien al buscar.
-  const dataBase = useMemo(
+  const dataConRol = useMemo(
     () => (dataFilter ? data.filter(dataFilter) : data),
     [data, dataFilter]
   );
+
+  const esInactivo = (row: Record<string, any>) => Number(row.id_estado) === 2;
+
+  // El interruptor solo aparece si de verdad hay inactivos que mostrar; así
+  // no estorba en entidades que ni siquiera manejan estado.
+  const hayInactivos = useMemo(
+    () => !sinFiltroEstado && dataConRol.some(esInactivo),
+    [dataConRol, sinFiltroEstado]
+  );
+
+  const dataBase = useMemo(() => {
+    if (sinFiltroEstado || mostrarInactivos) return dataConRol;
+    return dataConRol.filter(row => !esInactivo(row));
+  }, [dataConRol, sinFiltroEstado, mostrarInactivos]);
 
   const valorChip = (row: Record<string, any>) => {
     const v = row[chipFilter!.field];
@@ -192,7 +215,7 @@ export default function CrudPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataBase, chipActivo, chipFilter, searchQuery, sortKey, searchFields, sortOptions]);
 
-  const showToolbar = (searchFields && searchFields.length > 0) || (sortOptions && sortOptions.length > 0);
+  const showToolbar = (searchFields && searchFields.length > 0) || (sortOptions && sortOptions.length > 0) || hayInactivos;
 
   const groupedData = useMemo(() => {
     if (!groupBy) return null;
@@ -423,7 +446,11 @@ export default function CrudPage({
       </TableHeader>
       <TableBody>
         {rows.map((row, i) => (
-          <TableRow key={`${keyPrefix}${i}`}>
+          // Atenuados para que se note que no están activos.
+          <TableRow
+            key={`${keyPrefix}${i}`}
+            className={esInactivo(row) ? "opacity-60" : undefined}
+          >
             {displayFields.map(f => (
               <TableCell key={f.key}>{renderCellValue(f, row)}</TableCell>
             ))}
@@ -508,6 +535,21 @@ export default function CrudPage({
                   <X className="h-4 w-4" />
                 </button>
               )}
+            </div>
+          )}
+          {hayInactivos && (
+            <div className="flex items-center gap-2 rounded-md border bg-card px-3 sm:px-4">
+              <Switch
+                id="mostrar-inactivos"
+                checked={mostrarInactivos}
+                onCheckedChange={setMostrarInactivos}
+              />
+              <Label htmlFor="mostrar-inactivos" className="cursor-pointer whitespace-nowrap text-sm font-normal">
+                Mostrar inactivos
+                <span className="ml-1 text-xs text-muted-foreground">
+                  ({dataConRol.filter(esInactivo).length})
+                </span>
+              </Label>
             </div>
           )}
           {sortOptions && sortOptions.length > 0 && (
