@@ -58,8 +58,13 @@ interface Resumen {
     recaudo_matriculas: number;
     pendiente: number;
     cantidad_pendientes: number;
+    // Deuda de deportistas inactivos, fuera de la cartera.
+    pendiente_inactivos: number;
+    cantidad_pendientes_inactivos: number;
     pendiente_matriculas: number;
     cantidad_pendientes_matriculas: number;
+    pendiente_matriculas_inactivos: number;
+    cantidad_pendientes_matriculas_inactivos: number;
     // gastos = compras a proveedores + egresos operativos (arriendo, etc.)
     gastos: number;
     gastos_compras: number;
@@ -193,6 +198,9 @@ export default function Dashboard() {
             label="Mensualidades pendientes"
             value={formatMonedaFull(data.financiero.pendiente)}
             sub={`${data.financiero.cantidad_pendientes} mensualidad${data.financiero.cantidad_pendientes === 1 ? "" : "es"} del mes sin pago`}
+            nota={data.financiero.pendiente_inactivos > 0
+              ? `${formatMonedaFull(data.financiero.pendiente_inactivos)} más de deportistas inactivos, fuera de la cartera`
+              : undefined}
             color="amber"
           />
           <KpiFinanciero
@@ -200,6 +208,9 @@ export default function Dashboard() {
             label="Matrículas pendientes"
             value={formatMonedaFull(data.financiero.pendiente_matriculas)}
             sub={`${data.financiero.cantidad_pendientes_matriculas} matrícula${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} acumulada${data.financiero.cantidad_pendientes_matriculas === 1 ? "" : "s"} sin pago`}
+            nota={data.financiero.pendiente_matriculas_inactivos > 0
+              ? `${formatMonedaFull(data.financiero.pendiente_matriculas_inactivos)} más de deportistas inactivos, fuera de la cartera`
+              : undefined}
             color="amber"
           />
           {/* Suma compras a proveedores + egresos operativos. El subtítulo
@@ -433,9 +444,11 @@ export default function Dashboard() {
 }
 
 function KpiFinanciero({
-  icon: Icon, label, value, sub, color,
+  icon: Icon, label, value, sub, nota, color,
 }: {
   icon: any; label: string; value: string; sub: string;
+  // Línea extra opcional, para matices que no deben sumar a la cifra.
+  nota?: string;
   color: "green" | "amber" | "red";
 }) {
   const colorMap = {
@@ -457,6 +470,9 @@ function KpiFinanciero({
       <CardContent>
         <div className="text-2xl font-bold tracking-tight">{value}</div>
         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{sub}</p>
+        {nota && (
+          <p className="mt-1 text-[11px] leading-snug text-muted-foreground/80">{nota}</p>
+        )}
       </CardContent>
     </Card>
   );
